@@ -25,6 +25,11 @@ interface HttpClientInterface
     public function delete(string $uri, array $headers = []): array;
 
     /**
+     * Upload a file using multipart/form-data.
+     */
+    public function uploadFile(string $method, string $uri, string $fileContent, string $filename, string $fieldName = 'file', array $additionalData = []): array;
+
+    /**
      * Set the authorization token.
      */
     public function withToken(string $token): self;

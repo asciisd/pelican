@@ -4,7 +4,9 @@ namespace Mohanad\Copytrade;
 
 use Mohanad\Copytrade\Contracts\CopierServiceInterface;
 use Mohanad\Copytrade\Contracts\ProfileServiceInterface;
+use Mohanad\Copytrade\Contracts\SectionServiceInterface;
 use Mohanad\Copytrade\Contracts\ServerServiceInterface;
+use Mohanad\Copytrade\Contracts\StrategyServiceInterface;
 
 class Copytrade
 {
@@ -14,13 +16,20 @@ class Copytrade
     protected array $config;
 
     /**
+     * The access token for API requests.
+     */
+    protected ?string $token = null;
+
+    /**
      * Create a new Copytrade instance.
      */
     public function __construct(
         array $config = [],
         protected ?ProfileServiceInterface $profileService = null,
         protected ?ServerServiceInterface $serverService = null,
-        protected ?CopierServiceInterface $copierService = null
+        protected ?CopierServiceInterface $copierService = null,
+        protected ?SectionServiceInterface $sectionService = null,
+        protected ?StrategyServiceInterface $strategyService = null
     ) {
         $this->config = $config;
     }
@@ -30,7 +39,9 @@ class Copytrade
      */
     public function profiles(): ProfileServiceInterface
     {
-        return $this->profileService ?? app(ProfileServiceInterface::class);
+        $service = $this->profileService ?? app(ProfileServiceInterface::class);
+
+        return $this->token ? $service->withToken($this->token) : $service;
     }
 
     /**
@@ -38,7 +49,9 @@ class Copytrade
      */
     public function servers(): ServerServiceInterface
     {
-        return $this->serverService ?? app(ServerServiceInterface::class);
+        $service = $this->serverService ?? app(ServerServiceInterface::class);
+
+        return $this->token ? $service->withToken($this->token) : $service;
     }
 
     /**
@@ -46,7 +59,29 @@ class Copytrade
      */
     public function copiers(): CopierServiceInterface
     {
-        return $this->copierService ?? app(CopierServiceInterface::class);
+        $service = $this->copierService ?? app(CopierServiceInterface::class);
+
+        return $this->token ? $service->withToken($this->token) : $service;
+    }
+
+    /**
+     * Get the section service.
+     */
+    public function sections(): SectionServiceInterface
+    {
+        $service = $this->sectionService ?? app(SectionServiceInterface::class);
+
+        return $this->token ? $service->withToken($this->token) : $service;
+    }
+
+    /**
+     * Get the strategy service.
+     */
+    public function strategies(): StrategyServiceInterface
+    {
+        $service = $this->strategyService ?? app(StrategyServiceInterface::class);
+
+        return $this->token ? $service->withToken($this->token) : $service;
     }
 
     /**
@@ -54,15 +89,7 @@ class Copytrade
      */
     public function withToken(string $token): self
     {
-        $this->profiles()->withToken($token);
-
-        if ($this->serverService) {
-            $this->servers()->withToken($token);
-        }
-
-        if ($this->copierService) {
-            $this->copiers()->withToken($token);
-        }
+        $this->token = $token;
 
         return $this;
     }

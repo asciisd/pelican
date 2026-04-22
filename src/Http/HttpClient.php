@@ -4,8 +4,13 @@ namespace Mohanad\Copytrade\Http;
 
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Mohanad\Copytrade\Contracts\HttpClientInterface;
+use Mohanad\Copytrade\Exceptions\AuthenticationException;
 use Mohanad\Copytrade\Exceptions\CopytradeException;
+use Mohanad\Copytrade\Exceptions\NotFoundException;
+use Mohanad\Copytrade\Exceptions\RateLimitException;
+use Mohanad\Copytrade\Exceptions\ValidationException;
 
 class HttpClient implements HttpClientInterface
 {
@@ -94,13 +99,85 @@ class HttpClient implements HttpClientInterface
             ]);
 
         if ($response->failed()) {
-            throw new CopytradeException(
-                "API request failed: {$response->status()} - {$response->body()}",
-                $response->status()
-            );
+            $this->handleFailedResponse($method, $uri, $response);
         }
 
         return $response->json() ?? [];
+    }
+
+    /**
+     * Handle failed HTTP response.
+     *
+     * @throws CopytradeException
+     */
+    protected function handleFailedResponse(string $method, string $uri, $response): void
+    {
+        $status = $response->status();
+        $errorMessage = $response->json('error') ?? $response->json('message') ?? 'Unknown error';
+
+        // Log the error (sanitized)
+        Log::error('Copytrade API request failed', [
+            'method' => $method,
+            'uri' => $uri,
+            'status' => $status,
+            'error' => $errorMessage,
+        ]);
+
+        // Throw specific exception based on status code
+        $message = "API request failed: {$method} {$uri} returned {$status}";
+
+        match (true) {
+            $status === 401 || $status === 403 => throw new AuthenticationException($message, $status),
+            $status === 404 => throw new NotFoundException($message, $status),
+            $status === 422 => throw new ValidationException($message, $status),
+            $status === 429 => throw new RateLimitException($message, $status),
+            default => throw new CopytradeException($message, $status),
+        };
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function uploadFile(string $method, string $uri, string $fileContent, string $filename, string $fieldName = 'file', array $additionalData = []): array
+    {
+        // Create a temporary file to attach
+        $tempFile = tmpfile();
+        $tempPath = stream_get_meta_data($tempFile)['uri'];
+        fwrite($tempFile, $fileContent);
+        fseek($tempFile, 0);
+
+        try {
+            // Build the client without Content-Type header (let Laravel set it for multipart)
+            $client = Http::baseUrl($this->baseUri)
+                ->timeout($this->timeout)
+                ->withHeaders(array_merge(
+                    ['Accept' => 'application/json'],
+                    array_filter($this->defaultHeaders, fn ($key) => $key !== 'Content-Type', ARRAY_FILTER_USE_KEY)
+                ));
+
+            if ($this->token) {
+                $client->withToken($this->token);
+            }
+
+            // Attach the file
+            $client->attach($fieldName, $fileContent, $filename);
+
+            // Add any additional form data
+            foreach ($additionalData as $key => $value) {
+                $client->withBody($value, 'multipart/form-data');
+            }
+
+            $response = $client->send($method, $uri);
+
+            if ($response->failed()) {
+                $this->handleFailedResponse($method, $uri, $response);
+            }
+
+            return $response->json() ?? [];
+        } finally {
+            // Always clean up temp file
+            fclose($tempFile);
+        }
     }
 
     /**

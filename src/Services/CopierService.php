@@ -8,6 +8,7 @@ use Mohanad\Copytrade\DTOs\Copier\CopierDTO;
 use Mohanad\Copytrade\DTOs\Copier\CopierStatsDTO;
 use Mohanad\Copytrade\DTOs\Copier\CreateCopierRequest;
 use Mohanad\Copytrade\DTOs\Copier\UpdateCopierRequest;
+use Mohanad\Copytrade\DTOs\Strategy\StrategyDTO;
 
 class CopierService implements CopierServiceInterface
 {
@@ -86,14 +87,13 @@ class CopierService implements CopierServiceInterface
      */
     public function uploadCopierImage(string $profileId, string $copierId, $fileContent, string $filename): array
     {
-        // For file uploads, we need to use multipart/form-data
-        // Laravel HTTP client will handle this automatically when we pass file content
-        $response = $this->httpClient->put(
+        // Use multipart upload for file content
+        $response = $this->httpClient->uploadFile(
+            'PUT',
             "/api/profiles/{$profileId}/copiers/{$copierId}/image",
-            [
-                'file' => $fileContent,
-                'filename' => $filename,
-            ]
+            $fileContent,
+            $filename,
+            'file'
         );
 
         return $response;
@@ -106,6 +106,22 @@ class CopierService implements CopierServiceInterface
     {
         // CopyTrade stores images on separate asset server
         return "https://assets.copy-trade.io/images/copiers/thumbnails/{$copierId}";
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getCopierStrategies(string $copierId): array
+    {
+        $response = $this->httpClient->get("/api/copiers/{$copierId}/strategies");
+
+        // Extract strategies array
+        $strategies = isset($response[0]) ? $response : ($response['data'] ?? []);
+
+        return array_map(
+            fn (array $strategy) => StrategyDTO::fromResponse($strategy),
+            $strategies
+        );
     }
 
     /**

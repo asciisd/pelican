@@ -1,11 +1,11 @@
 <?php
 
-namespace Mohanad\Copytrade\DTOs\Copier;
+namespace Mohanad\Copytrade\DTOs\Strategy;
 
 use InvalidArgumentException;
 use JsonSerializable;
 
-class CopierConnectionDTO implements JsonSerializable
+class StrategyConnectionDTO implements JsonSerializable
 {
     public function __construct(
         public readonly string $brokerCode,
@@ -14,23 +14,16 @@ class CopierConnectionDTO implements JsonSerializable
         public readonly string $password
     ) {}
 
-    public function toArray(): array
-    {
-        return [
-            'brokerCode' => $this->brokerCode,
-            'serverCode' => $this->serverCode,
-            'username' => $this->username,
-            'password' => $this->password,
-        ];
-    }
-
+    /**
+     * Create from array.
+     */
     public static function fromArray(array $data): self
     {
-        if (empty($data['brokerCode']) && empty($data['broker_code'])) {
+        if (empty($data['brokerCode'])) {
             throw new InvalidArgumentException('Broker code is required and cannot be empty');
         }
 
-        if (empty($data['serverCode']) && empty($data['server_code'])) {
+        if (empty($data['serverCode'])) {
             throw new InvalidArgumentException('Server code is required and cannot be empty');
         }
 
@@ -43,13 +36,29 @@ class CopierConnectionDTO implements JsonSerializable
         }
 
         return new self(
-            brokerCode: $data['brokerCode'] ?? $data['broker_code'],
-            serverCode: $data['serverCode'] ?? $data['server_code'],
+            brokerCode: $data['brokerCode'],
+            serverCode: $data['serverCode'],
             username: $data['username'],
             password: $data['password']
         );
     }
 
+    /**
+     * Convert to array.
+     */
+    public function toArray(): array
+    {
+        return [
+            'brokerCode' => $this->brokerCode,
+            'serverCode' => $this->serverCode,
+            'username' => $this->username,
+            'password' => $this->password,
+        ];
+    }
+
+    /**
+     * JSON serialization.
+     */
     public function jsonSerialize(): array
     {
         return $this->toArray();

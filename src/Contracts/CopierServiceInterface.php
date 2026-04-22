@@ -4,6 +4,7 @@ namespace Mohanad\Copytrade\Contracts;
 
 use Mohanad\Copytrade\DTOs\Copier\CopierDTO;
 use Mohanad\Copytrade\DTOs\Copier\CopierStatsDTO;
+use Mohanad\Copytrade\DTOs\Strategy\StrategyDTO;
 
 interface CopierServiceInterface
 {
@@ -43,6 +44,13 @@ interface CopierServiceInterface
      * Get copier image URL.
      */
     public function getCopierImageUrl(string $copierId): string;
+
+    /**
+     * Get strategies that are being copied by a copier.
+     *
+     * @return StrategyDTO[]
+     */
+    public function getCopierStrategies(string $copierId): array;
 
     /**
      * Set authorization token for requests.
