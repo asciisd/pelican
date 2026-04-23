@@ -7,6 +7,7 @@ use Mohanad\Copytrade\Contracts\StrategyServiceInterface;
 use Mohanad\Copytrade\DTOs\Copier\CopierDTO;
 use Mohanad\Copytrade\DTOs\Strategy\CreateStrategyRequest;
 use Mohanad\Copytrade\DTOs\Strategy\SearchStrategyDTO;
+use Mohanad\Copytrade\DTOs\Strategy\SignalDTO;
 use Mohanad\Copytrade\DTOs\Strategy\StrategyDTO;
 use Mohanad\Copytrade\DTOs\Strategy\StrategyStatsDTO;
 use Mohanad\Copytrade\DTOs\Strategy\UpdateStrategyRequest;
@@ -129,6 +130,40 @@ class StrategyService implements StrategyServiceInterface
     {
         // CopyTrade stores images on separate asset server
         return "https://assets.copy-trade.io/images/strategies/thumbnails/{$strategyId}";
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getStrategyClosedSignals(string $strategyId, string $startDate, string $endDate): array
+    {
+        $response = $this->httpClient->get(
+            "/api/strategies/{$strategyId}/signals/closed/?startDate={$startDate}&endDate={$endDate}"
+        );
+
+        // Extract signals array
+        $signals = isset($response[0]) ? $response : ($response['data'] ?? []);
+
+        return array_map(
+            fn (array $signal) => SignalDTO::fromResponse($signal),
+            $signals
+        );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getStrategyOpenSignals(string $strategyId): array
+    {
+        $response = $this->httpClient->get("/api/strategies/{$strategyId}/signals/open");
+
+        // Extract signals array
+        $signals = isset($response[0]) ? $response : ($response['data'] ?? []);
+
+        return array_map(
+            fn (array $signal) => SignalDTO::fromResponse($signal),
+            $signals
+        );
     }
 
     /**

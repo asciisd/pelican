@@ -6,8 +6,12 @@ use Mohanad\Copytrade\Contracts\CopierServiceInterface;
 use Mohanad\Copytrade\Contracts\HttpClientInterface;
 use Mohanad\Copytrade\DTOs\Copier\CopierDTO;
 use Mohanad\Copytrade\DTOs\Copier\CopierStatsDTO;
+use Mohanad\Copytrade\DTOs\Copier\CopySettingsDTO;
+use Mohanad\Copytrade\DTOs\Copier\CopyStrategyRequest;
 use Mohanad\Copytrade\DTOs\Copier\CreateCopierRequest;
 use Mohanad\Copytrade\DTOs\Copier\UpdateCopierRequest;
+use Mohanad\Copytrade\DTOs\Copier\UpdateCopySettingsRequest;
+use Mohanad\Copytrade\DTOs\Strategy\SignalDTO;
 use Mohanad\Copytrade\DTOs\Strategy\StrategyDTO;
 
 class CopierService implements CopierServiceInterface
@@ -121,6 +125,72 @@ class CopierService implements CopierServiceInterface
         return array_map(
             fn (array $strategy) => StrategyDTO::fromResponse($strategy),
             $strategies
+        );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function copyStrategy(string $copierId, string $strategyId, array $data): CopySettingsDTO
+    {
+        $request = CopyStrategyRequest::fromArray($data);
+
+        $response = $this->httpClient->post(
+            "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings",
+            $request->toArray()
+        );
+
+        return CopySettingsDTO::fromResponse($response);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getCopySettings(string $copierId, string $strategyId): CopySettingsDTO
+    {
+        $response = $this->httpClient->get("/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings");
+
+        return CopySettingsDTO::fromResponse($response);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function updateCopySettings(string $copierId, string $strategyId, array $data): CopySettingsDTO
+    {
+        $request = UpdateCopySettingsRequest::fromArray($data);
+
+        $response = $this->httpClient->put(
+            "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings",
+            $request->toArray()
+        );
+
+        return CopySettingsDTO::fromResponse($response);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function stopCopyingStrategy(string $copierId, string $strategyId): bool
+    {
+        $this->httpClient->delete("/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings");
+
+        return true;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getMissedSignals(string $profileId, string $copierId): array
+    {
+        $response = $this->httpClient->get("/api/profiles/{$profileId}/copiers/{$copierId}/signals/missed");
+
+        // Extract signals array
+        $signals = isset($response[0]) ? $response : ($response['data'] ?? []);
+
+        return array_map(
+            fn (array $signal) => SignalDTO::fromResponse($signal),
+            $signals
         );
     }
 

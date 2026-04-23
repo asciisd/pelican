@@ -4,6 +4,8 @@ namespace Mohanad\Copytrade\Contracts;
 
 use Mohanad\Copytrade\DTOs\Copier\CopierDTO;
 use Mohanad\Copytrade\DTOs\Copier\CopierStatsDTO;
+use Mohanad\Copytrade\DTOs\Copier\CopySettingsDTO;
+use Mohanad\Copytrade\DTOs\Strategy\SignalDTO;
 use Mohanad\Copytrade\DTOs\Strategy\StrategyDTO;
 
 interface CopierServiceInterface
@@ -51,6 +53,33 @@ interface CopierServiceInterface
      * @return StrategyDTO[]
      */
     public function getCopierStrategies(string $copierId): array;
+
+    /**
+     * Copy a strategy with settings.
+     */
+    public function copyStrategy(string $copierId, string $strategyId, array $data): CopySettingsDTO;
+
+    /**
+     * Get copy settings for a strategy.
+     */
+    public function getCopySettings(string $copierId, string $strategyId): CopySettingsDTO;
+
+    /**
+     * Update copy settings for a strategy.
+     */
+    public function updateCopySettings(string $copierId, string $strategyId, array $data): CopySettingsDTO;
+
+    /**
+     * Stop copying a strategy.
+     */
+    public function stopCopyingStrategy(string $copierId, string $strategyId): bool;
+
+    /**
+     * Get missed signals for a copier.
+     *
+     * @return SignalDTO[]
+     */
+    public function getMissedSignals(string $profileId, string $copierId): array;
 
     /**
      * Set authorization token for requests.

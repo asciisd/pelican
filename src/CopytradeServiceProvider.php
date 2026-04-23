@@ -101,7 +101,7 @@ class CopytradeServiceProvider extends ServiceProvider
                 serverService: $app->make(ServerServiceInterface::class),
                 copierService: $app->make(CopierServiceInterface::class),
                 sectionService: $app->make(SectionServiceInterface::class),
-                strategyService: $app->make(StrategyServiceInterface::class)
+                strategyService: $app->make(StrategyServiceInterface::class),
             );
         });
     }

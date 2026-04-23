@@ -29,7 +29,7 @@ class Copytrade
         protected ?ServerServiceInterface $serverService = null,
         protected ?CopierServiceInterface $copierService = null,
         protected ?SectionServiceInterface $sectionService = null,
-        protected ?StrategyServiceInterface $strategyService = null
+        protected ?StrategyServiceInterface $strategyService = null,
     ) {
         $this->config = $config;
     }
