@@ -1,9 +1,9 @@
 <?php
 
-namespace Mohanad\Copytrade\Contracts;
+namespace Asciisd\Copytrade\Contracts;
 
-use Mohanad\Copytrade\DTOs\Profile\ProfileDTO;
-use Mohanad\Copytrade\DTOs\Profile\UserInfoDTO;
+use Asciisd\Copytrade\DTOs\Profile\ProfileDTO;
+use Asciisd\Copytrade\DTOs\Profile\UserInfoDTO;
 
 interface ProfileServiceInterface
 {

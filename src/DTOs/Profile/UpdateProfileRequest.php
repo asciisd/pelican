@@ -1,6 +1,6 @@
 <?php
 
-namespace Mohanad\Copytrade\DTOs\Profile;
+namespace Asciisd\Copytrade\DTOs\Profile;
 
 class UpdateProfileRequest
 {

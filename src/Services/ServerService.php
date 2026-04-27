@@ -1,15 +1,18 @@
 <?php
 
-namespace Mohanad\Copytrade\Services;
+namespace Asciisd\Copytrade\Services;
 
-use Mohanad\Copytrade\Contracts\HttpClientInterface;
-use Mohanad\Copytrade\Contracts\ServerServiceInterface;
-use Mohanad\Copytrade\DTOs\Server\ServerDTO;
+use Illuminate\Support\Facades\Http;
+use Asciisd\Copytrade\Contracts\ServerServiceInterface;
+use Asciisd\Copytrade\DTOs\Server\ServerDTO;
 
 class ServerService implements ServerServiceInterface
 {
+    protected ?string $token = null;
+
     public function __construct(
-        protected HttpClientInterface $httpClient
+        protected string $baseUri,
+        protected int $timeout = 120
     ) {}
 
     /**
@@ -17,7 +20,7 @@ class ServerService implements ServerServiceInterface
      */
     public function getServers(): array
     {
-        $response = $this->httpClient->get('/api/servers');
+        $response = $this->makeRequest('GET', '/api/servers');
 
         // Extract servers array (handle both direct array and wrapped response)
         $servers = isset($response[0]) ? $response : ($response['data'] ?? []);
@@ -34,8 +37,28 @@ class ServerService implements ServerServiceInterface
      */
     public function withToken(string $token): self
     {
-        $this->httpClient->withToken($token);
+        $this->token = $token;
 
         return $this;
+    }
+
+    /**
+     * Make HTTP request.
+     */
+    protected function makeRequest(string $method, string $uri, array $data = []): array
+    {
+        $client = Http::baseUrl($this->baseUri)
+            ->timeout($this->timeout)
+            ->acceptJson();
+
+        if ($this->token) {
+            $client->withToken($this->token);
+        }
+
+        $response = $client->send($method, $uri, [
+            'json' => $data,
+        ]);
+
+        return $response->json() ?? [];
     }
 }

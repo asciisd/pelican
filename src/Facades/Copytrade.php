@@ -1,6 +1,6 @@
 <?php
 
-namespace Mohanad\Copytrade\Facades;
+namespace Asciisd\Copytrade\Facades;
 
 use Illuminate\Support\Facades\Facade;
 

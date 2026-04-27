@@ -1,6 +1,6 @@
 <?php
 
-namespace Mohanad\Copytrade\Contracts;
+namespace Asciisd\Copytrade\Contracts;
 
 interface HttpClientInterface
 {

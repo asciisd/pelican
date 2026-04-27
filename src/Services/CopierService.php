@@ -1,23 +1,26 @@
 <?php
 
-namespace Mohanad\Copytrade\Services;
+namespace Asciisd\Copytrade\Services;
 
-use Mohanad\Copytrade\Contracts\CopierServiceInterface;
-use Mohanad\Copytrade\Contracts\HttpClientInterface;
-use Mohanad\Copytrade\DTOs\Copier\CopierDTO;
-use Mohanad\Copytrade\DTOs\Copier\CopierStatsDTO;
-use Mohanad\Copytrade\DTOs\Copier\CopySettingsDTO;
-use Mohanad\Copytrade\DTOs\Copier\CopyStrategyRequest;
-use Mohanad\Copytrade\DTOs\Copier\CreateCopierRequest;
-use Mohanad\Copytrade\DTOs\Copier\UpdateCopierRequest;
-use Mohanad\Copytrade\DTOs\Copier\UpdateCopySettingsRequest;
-use Mohanad\Copytrade\DTOs\Strategy\SignalDTO;
-use Mohanad\Copytrade\DTOs\Strategy\StrategyDTO;
+use Illuminate\Support\Facades\Http;
+use Asciisd\Copytrade\Contracts\CopierServiceInterface;
+use Asciisd\Copytrade\DTOs\Copier\CopierDTO;
+use Asciisd\Copytrade\DTOs\Copier\CopierStatsDTO;
+use Asciisd\Copytrade\DTOs\Copier\CopySettingsDTO;
+use Asciisd\Copytrade\DTOs\Copier\CopyStrategyRequest;
+use Asciisd\Copytrade\DTOs\Copier\CreateCopierRequest;
+use Asciisd\Copytrade\DTOs\Copier\UpdateCopierRequest;
+use Asciisd\Copytrade\DTOs\Copier\UpdateCopySettingsRequest;
+use Asciisd\Copytrade\DTOs\Strategy\SignalDTO;
+use Asciisd\Copytrade\DTOs\Strategy\StrategyDTO;
 
 class CopierService implements CopierServiceInterface
 {
+    protected ?string $token = null;
+
     public function __construct(
-        protected HttpClientInterface $httpClient
+        protected string $baseUri,
+        protected int $timeout = 120
     ) {}
 
     /**
@@ -25,7 +28,7 @@ class CopierService implements CopierServiceInterface
      */
     public function getCopiers(string $profileId): array
     {
-        $response = $this->httpClient->get("/api/profiles/{$profileId}/copiers");
+        $response = $this->makeRequest('GET', "/api/profiles/{$profileId}/copiers");
 
         // Extract copiers array
         $copiers = isset($response[0]) ? $response : ($response['data'] ?? []);
@@ -43,10 +46,7 @@ class CopierService implements CopierServiceInterface
     {
         $request = CreateCopierRequest::fromArray($data);
 
-        $response = $this->httpClient->post(
-            "/api/profiles/{$profileId}/copiers",
-            $request->toArray()
-        );
+        $response = $this->makeRequest('POST', "/api/profiles/{$profileId}/copiers", $request->toArray());
 
         return CopierDTO::fromResponse($response);
     }
@@ -58,10 +58,7 @@ class CopierService implements CopierServiceInterface
     {
         $request = UpdateCopierRequest::fromArray($data);
 
-        $response = $this->httpClient->put(
-            "/api/profiles/{$profileId}/copiers/{$copierId}",
-            $request->toArray()
-        );
+        $response = $this->makeRequest('PUT', "/api/profiles/{$profileId}/copiers/{$copierId}", $request->toArray());
 
         return CopierDTO::fromResponse($response);
     }
@@ -71,7 +68,7 @@ class CopierService implements CopierServiceInterface
      */
     public function removeCopier(string $profileId, string $copierId): bool
     {
-        $this->httpClient->delete("/api/profiles/{$profileId}/copiers/{$copierId}");
+        $this->makeRequest('DELETE', "/api/profiles/{$profileId}/copiers/{$copierId}");
 
         return true;
     }
@@ -81,7 +78,7 @@ class CopierService implements CopierServiceInterface
      */
     public function getCopierStats(string $copierId): CopierStatsDTO
     {
-        $response = $this->httpClient->get("/api/copiers/{$copierId}/stats");
+        $response = $this->makeRequest('GET', "/api/copiers/{$copierId}/stats");
 
         return CopierStatsDTO::fromResponse($response);
     }
@@ -91,16 +88,19 @@ class CopierService implements CopierServiceInterface
      */
     public function uploadCopierImage(string $profileId, string $copierId, $fileContent, string $filename): array
     {
-        // Use multipart upload for file content
-        $response = $this->httpClient->uploadFile(
-            'PUT',
-            "/api/profiles/{$profileId}/copiers/{$copierId}/image",
-            $fileContent,
-            $filename,
-            'file'
-        );
+        // Use Laravel Http facade for file uploads
+        $client = Http::baseUrl($this->baseUri)
+            ->timeout($this->timeout)
+            ->acceptJson();
 
-        return $response;
+        if ($this->token) {
+            $client->withToken($this->token);
+        }
+
+        $response = $client->attach('file', $fileContent, $filename)
+            ->put("/api/profiles/{$profileId}/copiers/{$copierId}/image");
+
+        return $response->json() ?? [];
     }
 
     /**
@@ -117,7 +117,7 @@ class CopierService implements CopierServiceInterface
      */
     public function getCopierStrategies(string $copierId): array
     {
-        $response = $this->httpClient->get("/api/copiers/{$copierId}/strategies");
+        $response = $this->makeRequest('GET', "/api/copiers/{$copierId}/strategies");
 
         // Extract strategies array
         $strategies = isset($response[0]) ? $response : ($response['data'] ?? []);
@@ -135,10 +135,7 @@ class CopierService implements CopierServiceInterface
     {
         $request = CopyStrategyRequest::fromArray($data);
 
-        $response = $this->httpClient->post(
-            "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings",
-            $request->toArray()
-        );
+        $response = $this->makeRequest('POST', "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings", $request->toArray());
 
         return CopySettingsDTO::fromResponse($response);
     }
@@ -148,7 +145,7 @@ class CopierService implements CopierServiceInterface
      */
     public function getCopySettings(string $copierId, string $strategyId): CopySettingsDTO
     {
-        $response = $this->httpClient->get("/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings");
+        $response = $this->makeRequest('GET', "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings");
 
         return CopySettingsDTO::fromResponse($response);
     }
@@ -160,10 +157,7 @@ class CopierService implements CopierServiceInterface
     {
         $request = UpdateCopySettingsRequest::fromArray($data);
 
-        $response = $this->httpClient->put(
-            "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings",
-            $request->toArray()
-        );
+        $response = $this->makeRequest('PUT', "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings", $request->toArray());
 
         return CopySettingsDTO::fromResponse($response);
     }
@@ -173,7 +167,7 @@ class CopierService implements CopierServiceInterface
      */
     public function stopCopyingStrategy(string $copierId, string $strategyId): bool
     {
-        $this->httpClient->delete("/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings");
+        $this->makeRequest('DELETE', "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings");
 
         return true;
     }
@@ -183,7 +177,7 @@ class CopierService implements CopierServiceInterface
      */
     public function getMissedSignals(string $profileId, string $copierId): array
     {
-        $response = $this->httpClient->get("/api/profiles/{$profileId}/copiers/{$copierId}/signals/missed");
+        $response = $this->makeRequest('GET', "/api/profiles/{$profileId}/copiers/{$copierId}/signals/missed");
 
         // Extract signals array
         $signals = isset($response[0]) ? $response : ($response['data'] ?? []);
@@ -199,8 +193,28 @@ class CopierService implements CopierServiceInterface
      */
     public function withToken(string $token): self
     {
-        $this->httpClient->withToken($token);
+        $this->token = $token;
 
         return $this;
+    }
+
+    /**
+     * Make HTTP request.
+     */
+    protected function makeRequest(string $method, string $uri, array $data = []): array
+    {
+        $client = Http::baseUrl($this->baseUri)
+            ->timeout($this->timeout)
+            ->acceptJson();
+
+        if ($this->token) {
+            $client->withToken($this->token);
+        }
+
+        $response = $client->send($method, $uri, [
+            'json' => $data,
+        ]);
+
+        return $response->json() ?? [];
     }
 }

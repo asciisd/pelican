@@ -1,8 +1,8 @@
 <?php
 
-namespace Mohanad\Copytrade\Contracts;
+namespace Asciisd\Copytrade\Contracts;
 
-use Mohanad\Copytrade\DTOs\Section\SectionDTO;
+use Asciisd\Copytrade\DTOs\Section\SectionDTO;
 
 interface SectionServiceInterface
 {

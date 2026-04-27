@@ -1,16 +1,16 @@
 <?php
 
-namespace Mohanad\Copytrade\Http;
+namespace Asciisd\Copytrade\Http;
 
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Mohanad\Copytrade\Contracts\HttpClientInterface;
-use Mohanad\Copytrade\Exceptions\AuthenticationException;
-use Mohanad\Copytrade\Exceptions\CopytradeException;
-use Mohanad\Copytrade\Exceptions\NotFoundException;
-use Mohanad\Copytrade\Exceptions\RateLimitException;
-use Mohanad\Copytrade\Exceptions\ValidationException;
+use Asciisd\Copytrade\Contracts\HttpClientInterface;
+use Asciisd\Copytrade\Exceptions\AuthenticationException;
+use Asciisd\Copytrade\Exceptions\CopytradeException;
+use Asciisd\Copytrade\Exceptions\NotFoundException;
+use Asciisd\Copytrade\Exceptions\RateLimitException;
+use Asciisd\Copytrade\Exceptions\ValidationException;
 
 class HttpClient implements HttpClientInterface
 {

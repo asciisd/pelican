@@ -1,12 +1,12 @@
 <?php
 
-namespace Mohanad\Copytrade;
+namespace Asciisd\Copytrade;
 
-use Mohanad\Copytrade\Contracts\CopierServiceInterface;
-use Mohanad\Copytrade\Contracts\ProfileServiceInterface;
-use Mohanad\Copytrade\Contracts\SectionServiceInterface;
-use Mohanad\Copytrade\Contracts\ServerServiceInterface;
-use Mohanad\Copytrade\Contracts\StrategyServiceInterface;
+use Asciisd\Copytrade\Contracts\CopierServiceInterface;
+use Asciisd\Copytrade\Contracts\ProfileServiceInterface;
+use Asciisd\Copytrade\Contracts\SectionServiceInterface;
+use Asciisd\Copytrade\Contracts\ServerServiceInterface;
+use Asciisd\Copytrade\Contracts\StrategyServiceInterface;
 
 class Copytrade
 {

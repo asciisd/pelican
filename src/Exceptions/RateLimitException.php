@@ -1,6 +1,6 @@
 <?php
 
-namespace Mohanad\Copytrade\Exceptions;
+namespace Asciisd\Copytrade\Exceptions;
 
 class RateLimitException extends CopytradeException
 {

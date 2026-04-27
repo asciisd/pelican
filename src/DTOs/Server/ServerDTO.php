@@ -1,6 +1,6 @@
 <?php
 
-namespace Mohanad\Copytrade\DTOs\Server;
+namespace Asciisd\Copytrade\DTOs\Server;
 
 use JsonSerializable;
 

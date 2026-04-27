@@ -1,12 +1,12 @@
 <?php
 
-namespace Mohanad\Copytrade\Contracts;
+namespace Asciisd\Copytrade\Contracts;
 
-use Mohanad\Copytrade\DTOs\Copier\CopierDTO;
-use Mohanad\Copytrade\DTOs\Strategy\SearchStrategyDTO;
-use Mohanad\Copytrade\DTOs\Strategy\SignalDTO;
-use Mohanad\Copytrade\DTOs\Strategy\StrategyDTO;
-use Mohanad\Copytrade\DTOs\Strategy\StrategyStatsDTO;
+use Asciisd\Copytrade\DTOs\Copier\CopierDTO;
+use Asciisd\Copytrade\DTOs\Strategy\SearchStrategyDTO;
+use Asciisd\Copytrade\DTOs\Strategy\SignalDTO;
+use Asciisd\Copytrade\DTOs\Strategy\StrategyDTO;
+use Asciisd\Copytrade\DTOs\Strategy\StrategyStatsDTO;
 
 interface StrategyServiceInterface
 {

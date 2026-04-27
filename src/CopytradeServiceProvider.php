@@ -1,20 +1,19 @@
 <?php
 
-namespace Mohanad\Copytrade;
+namespace Asciisd\Copytrade;
 
 use Illuminate\Foundation\AliasLoader;
 use Illuminate\Support\ServiceProvider;
-use Mohanad\Copytrade\Contracts\CopierServiceInterface;
-use Mohanad\Copytrade\Contracts\ProfileServiceInterface;
-use Mohanad\Copytrade\Contracts\SectionServiceInterface;
-use Mohanad\Copytrade\Contracts\ServerServiceInterface;
-use Mohanad\Copytrade\Contracts\StrategyServiceInterface;
-use Mohanad\Copytrade\Http\HttpClient;
-use Mohanad\Copytrade\Services\CopierService;
-use Mohanad\Copytrade\Services\ProfileService;
-use Mohanad\Copytrade\Services\SectionService;
-use Mohanad\Copytrade\Services\ServerService;
-use Mohanad\Copytrade\Services\StrategyService;
+use Asciisd\Copytrade\Contracts\CopierServiceInterface;
+use Asciisd\Copytrade\Contracts\ProfileServiceInterface;
+use Asciisd\Copytrade\Contracts\SectionServiceInterface;
+use Asciisd\Copytrade\Contracts\ServerServiceInterface;
+use Asciisd\Copytrade\Contracts\StrategyServiceInterface;
+use Asciisd\Copytrade\Services\CopierService;
+use Asciisd\Copytrade\Services\ProfileService;
+use Asciisd\Copytrade\Services\SectionService;
+use Asciisd\Copytrade\Services\ServerService;
+use Asciisd\Copytrade\Services\StrategyService;
 use RuntimeException;
 
 class CopytradeServiceProvider extends ServiceProvider
@@ -33,63 +32,40 @@ class CopytradeServiceProvider extends ServiceProvider
         // Validate required configuration
         $this->validateConfiguration();
 
-        // Register HTTP Clients
-        $this->app->singleton('copytrade.http.api', function ($app) {
-            $client = new HttpClient(
-                baseUri: config('copytrade.base_uri'),
-                timeout: config('copytrade.timeout', 120)
-            );
-
-            if ($token = config('copytrade.access_token')) {
-                $client->withToken($token);
-            }
-
-            return $client;
-        });
-
-        $this->app->singleton('copytrade.http.identity', function ($app) {
-            $client = new HttpClient(
-                baseUri: config('copytrade.identity_uri'),
-                timeout: config('copytrade.timeout', 30)
-            );
-
-            if ($token = config('copytrade.access_token')) {
-                $client->withToken($token);
-            }
-
-            return $client;
-        });
-
         // Register Services
         $this->app->singleton(ProfileServiceInterface::class, function ($app) {
             return new ProfileService(
-                httpClient: $app->make('copytrade.http.api'),
-                identityClient: $app->make('copytrade.http.identity'),
-                baseUri: config('copytrade.base_uri')
+                baseUri: config('copytrade.base_uri'),
+                identityUri: config('copytrade.identity_uri'),
+                timeout: config('copytrade.timeout', 120)
             );
         });
 
         $this->app->singleton(ServerServiceInterface::class, function ($app) {
             return new ServerService(
-                httpClient: $app->make('copytrade.http.api')
+                baseUri: config('copytrade.base_uri'),
+                timeout: config('copytrade.timeout', 120)
             );
         });
 
         $this->app->singleton(CopierServiceInterface::class, function ($app) {
             return new CopierService(
-                httpClient: $app->make('copytrade.http.api')
+                baseUri: config('copytrade.base_uri'),
+                timeout: config('copytrade.timeout', 120)
             );
         });
 
         $this->app->singleton(SectionServiceInterface::class, function ($app) {
             return new SectionService(
-                httpClient: $app->make('copytrade.http.api')
+                baseUri: config('copytrade.base_uri'),
+                timeout: config('copytrade.timeout', 120)
             );
         });
 
         $this->app->singleton(StrategyServiceInterface::class, function ($app) {
             return new StrategyService(
-                httpClient: $app->make('copytrade.http.api')
+                baseUri: config('copytrade.base_uri'),
+                timeout: config('copytrade.timeout', 120)
             );
         });
 

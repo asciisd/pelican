@@ -37,7 +37,7 @@ Add the repository to your project's `composer.json`:
     }
   ],
   "require": {
-    "mohanad/copytrade": "dev-main"
+    "asciisd/copytrade": "dev-main"
   }
 }
 ```
@@ -51,7 +51,7 @@ composer install
 ### Direct Installation
 
 ```bash
-composer require mohanad/copytrade:dev-main
+composer require asciisd/copytrade:dev-main
 ```
 
 > **Note:** Make sure to add the repository to your `composer.json` first if using direct installation.
@@ -132,9 +132,9 @@ $servers = Copytrade::servers()->getServers();
 For better testability and type-hinting:
 
 ```php
-use Mohanad\Copytrade\Contracts\ProfileServiceInterface;
-use Mohanad\Copytrade\Contracts\StrategyServiceInterface;
-use Mohanad\Copytrade\Contracts\CopierServiceInterface;
+use Asciisd\Copytrade\Contracts\ProfileServiceInterface;
+use Asciisd\Copytrade\Contracts\StrategyServiceInterface;
+use Asciisd\Copytrade\Contracts\CopierServiceInterface;
 
 class TradingController extends Controller
 {
@@ -472,11 +472,11 @@ $section->rawData       // array  - Raw API response
 The package provides specific exceptions for different error scenarios:
 
 ```php
-use Mohanad\Copytrade\Exceptions\AuthenticationException;
-use Mohanad\Copytrade\Exceptions\NotFoundException;
-use Mohanad\Copytrade\Exceptions\ValidationException;
-use Mohanad\Copytrade\Exceptions\RateLimitException;
-use Mohanad\Copytrade\Exceptions\CopytradeException;
+use Asciisd\Copytrade\Exceptions\AuthenticationException;
+use Asciisd\Copytrade\Exceptions\NotFoundException;
+use Asciisd\Copytrade\Exceptions\ValidationException;
+use Asciisd\Copytrade\Exceptions\RateLimitException;
+use Asciisd\Copytrade\Exceptions\CopytradeException;
 
 try {
     $profile = Copytrade::profiles()->getProfile($profileId);
@@ -503,8 +503,8 @@ try {
 The package is designed with testability in mind. All services implement interfaces, making them easy to mock:
 
 ```php
-use Mohanad\Copytrade\Contracts\ProfileServiceInterface;
-use Mohanad\Copytrade\DTOs\Profile\ProfileDTO;
+use Asciisd\Copytrade\Contracts\ProfileServiceInterface;
+use Asciisd\Copytrade\DTOs\Profile\ProfileDTO;
 
 class ExampleTest extends TestCase
 {
@@ -617,7 +617,7 @@ $server->rawData        // array
 ## Error Handling
 
 ```php
-use Mohanad\Copytrade\Exceptions\CopytradeException;
+use Asciisd\Copytrade\Exceptions\CopytradeException;
 
 try {
     $profile = Copytrade::profiles()->getProfile($profileId);
@@ -668,7 +668,7 @@ src/
 ## Testing
 
 ```php
-use Mohanad\Copytrade\Contracts\ProfileServiceInterface;
+use Asciisd\Copytrade\Contracts\ProfileServiceInterface;
 
 // Mock in tests
 $this->mock(ProfileServiceInterface::class, function ($mock) {

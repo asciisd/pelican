@@ -1,6 +1,6 @@
 <?php
 
-namespace Mohanad\Copytrade\DTOs\Strategy;
+namespace Asciisd\Copytrade\DTOs\Strategy;
 
 use InvalidArgumentException;
 

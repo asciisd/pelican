@@ -1,6 +1,6 @@
 <?php
 
-namespace Mohanad\Copytrade\DTOs\Copier;
+namespace Asciisd\Copytrade\DTOs\Copier;
 
 use InvalidArgumentException;
 use JsonSerializable;

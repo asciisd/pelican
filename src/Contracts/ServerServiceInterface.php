@@ -1,8 +1,8 @@
 <?php
 
-namespace Mohanad\Copytrade\Contracts;
+namespace Asciisd\Copytrade\Contracts;
 
-use Mohanad\Copytrade\DTOs\Server\ServerDTO;
+use Asciisd\Copytrade\DTOs\Server\ServerDTO;
 
 interface ServerServiceInterface
 {

@@ -7,7 +7,7 @@ Successfully implemented a complete, production-ready Laravel package for the Co
 ## Package Structure
 
 ```
-packages/mohanad/copytrade/
+packages/asciisd/copytrade/
 ├── src/
 │   ├── Config/
 │   │   └── copytrade.php              ✅ Configuration with base URIs and credentials
@@ -172,7 +172,7 @@ $servers = Copytrade::servers()->getServers();
 ### Dependency Injection
 
 ```php
-use Mohanad\Copytrade\Contracts\ProfileServiceInterface;
+use Asciisd\Copytrade\Contracts\ProfileServiceInterface;
 
 public function __construct(
     protected ProfileServiceInterface $profileService
@@ -216,19 +216,19 @@ $this->assertEquals('John', $profile->name);
 1. **Install via Composer**:
 
     ```bash
-    composer require mohanad/copytrade:@dev
+    composer require asciisd/copytrade:@dev
     ```
 
 2. **Verify Installation**:
 
     ```bash
-    composer show mohanad/copytrade
+    composer show asciisd/copytrade
     ```
 
 3. **Check Symlink**:
 
     ```bash
-    ls -la vendor/mohanad/copytrade
+    ls -la vendor/asciisd/copytrade
     ```
 
 4. **Publish Config**:

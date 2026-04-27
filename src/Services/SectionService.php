@@ -1,15 +1,18 @@
 <?php
 
-namespace Mohanad\Copytrade\Services;
+namespace Asciisd\Copytrade\Services;
 
-use Mohanad\Copytrade\Contracts\HttpClientInterface;
-use Mohanad\Copytrade\Contracts\SectionServiceInterface;
-use Mohanad\Copytrade\DTOs\Section\SectionDTO;
+use Illuminate\Support\Facades\Http;
+use Asciisd\Copytrade\Contracts\SectionServiceInterface;
+use Asciisd\Copytrade\DTOs\Section\SectionDTO;
 
 class SectionService implements SectionServiceInterface
 {
+    protected ?string $token = null;
+
     public function __construct(
-        protected HttpClientInterface $httpClient
+        protected string $baseUri,
+        protected int $timeout = 120
     ) {}
 
     /**
@@ -17,7 +20,7 @@ class SectionService implements SectionServiceInterface
      */
     public function getSections(): array
     {
-        $response = $this->httpClient->get('/api/discover/');
+        $response = $this->makeRequest('GET', '/api/discover/');
 
         // Extract sections array
         $sections = isset($response[0]) ? $response : ($response['data'] ?? []);
@@ -33,7 +36,7 @@ class SectionService implements SectionServiceInterface
      */
     public function getSection(string $code): SectionDTO
     {
-        $response = $this->httpClient->get("/api/discover/{$code}");
+        $response = $this->makeRequest('GET', "/api/discover/{$code}");
 
         return SectionDTO::fromResponse($response);
     }
@@ -43,8 +46,28 @@ class SectionService implements SectionServiceInterface
      */
     public function withToken(string $token): self
     {
-        $this->httpClient->withToken($token);
+        $this->token = $token;
 
         return $this;
+    }
+
+    /**
+     * Make HTTP request.
+     */
+    protected function makeRequest(string $method, string $uri, array $data = []): array
+    {
+        $client = Http::baseUrl($this->baseUri)
+            ->timeout($this->timeout)
+            ->acceptJson();
+
+        if ($this->token) {
+            $client->withToken($this->token);
+        }
+
+        $response = $client->send($method, $uri, [
+            'json' => $data,
+        ]);
+
+        return $response->json() ?? [];
     }
 }

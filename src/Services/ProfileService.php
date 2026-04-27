@@ -1,19 +1,21 @@
 <?php
 
-namespace Mohanad\Copytrade\Services;
+namespace Asciisd\Copytrade\Services;
 
-use Mohanad\Copytrade\Contracts\HttpClientInterface;
-use Mohanad\Copytrade\Contracts\ProfileServiceInterface;
-use Mohanad\Copytrade\DTOs\Profile\ProfileDTO;
-use Mohanad\Copytrade\DTOs\Profile\UpdateProfileRequest;
-use Mohanad\Copytrade\DTOs\Profile\UserInfoDTO;
+use Illuminate\Support\Facades\Http;
+use Asciisd\Copytrade\Contracts\ProfileServiceInterface;
+use Asciisd\Copytrade\DTOs\Profile\ProfileDTO;
+use Asciisd\Copytrade\DTOs\Profile\UpdateProfileRequest;
+use Asciisd\Copytrade\DTOs\Profile\UserInfoDTO;
 
 class ProfileService implements ProfileServiceInterface
 {
+    protected ?string $token = null;
+
     public function __construct(
-        protected HttpClientInterface $httpClient,
-        protected HttpClientInterface $identityClient,
-        protected string $baseUri
+        protected string $baseUri,
+        protected string $identityUri,
+        protected int $timeout = 120
     ) {}
 
     /**
@@ -21,7 +23,7 @@ class ProfileService implements ProfileServiceInterface
      */
     public function getUserInfo(): UserInfoDTO
     {
-        $response = $this->identityClient->get('/connect/userinfo');
+        $response = $this->makeRequest('GET', '/connect/userinfo', baseUri: $this->identityUri);
 
         return UserInfoDTO::fromResponse($response);
     }
@@ -31,7 +33,7 @@ class ProfileService implements ProfileServiceInterface
      */
     public function getProfile(string $profileId): ProfileDTO
     {
-        $response = $this->httpClient->get("/api/profiles/{$profileId}");
+        $response = $this->makeRequest('GET', "/api/profiles/{$profileId}");
 
         return ProfileDTO::fromResponse($response);
     }
@@ -43,10 +45,7 @@ class ProfileService implements ProfileServiceInterface
     {
         $request = UpdateProfileRequest::fromArray($data);
 
-        $response = $this->httpClient->put(
-            "/api/profiles/{$profileId}",
-            $request->toArray()
-        );
+        $response = $this->makeRequest('PUT', "/api/profiles/{$profileId}", $request->toArray());
 
         return ProfileDTO::fromResponse($response);
     }
@@ -56,9 +55,28 @@ class ProfileService implements ProfileServiceInterface
      */
     public function withToken(string $token): self
     {
-        $this->httpClient->withToken($token);
-        $this->identityClient->withToken($token);
+        $this->token = $token;
 
         return $this;
+    }
+
+    /**
+     * Make HTTP request.
+     */
+    protected function makeRequest(string $method, string $uri, array $data = [], ?string $baseUri = null): array
+    {
+        $client = Http::baseUrl($baseUri ?? $this->baseUri)
+            ->timeout($this->timeout)
+            ->acceptJson();
+
+        if ($this->token) {
+            $client->withToken($this->token);
+        }
+
+        $response = $client->send($method, $uri, [
+            'json' => $data,
+        ]);
+
+        return $response->json() ?? [];
     }
 }
