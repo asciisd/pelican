@@ -9,8 +9,8 @@ class CopySettingsDTO implements JsonSerializable
     public function __construct(
         public readonly string $tradeSizeType,
         public readonly float $tradeSizeValue,
+        public readonly bool $isRoundUpToMinimumSize,
         public readonly ?bool $isOpenExistingTrades = null,
-        public readonly ?bool $isRoundUpToMinimumSize = null,
         public readonly array $rawData = []
     ) {}
 
@@ -19,21 +19,28 @@ class CopySettingsDTO implements JsonSerializable
         return new self(
             tradeSizeType: $data['TradeSizeType'] ?? $data['tradeSizeType'] ?? '',
             tradeSizeValue: (float) ($data['TradeSizeValue'] ?? $data['tradeSizeValue'] ?? 0),
-            isOpenExistingTrades: $data['IsOpenExistingTrades'] ?? $data['isOpenExistingTrades'] ?? null,
-            isRoundUpToMinimumSize: $data['IsRoundUpToMinimumSize'] ?? $data['isRoundUpToMinimumSize'] ?? null,
+            isRoundUpToMinimumSize: (bool) ($data['IsRoundUpToMinimumSize'] ?? $data['isRoundUpToMinimumSize'] ?? false),
+            isOpenExistingTrades: isset($data['IsOpenExistingTrades']) || isset($data['isOpenExistingTrades'])
+                ? (bool) ($data['IsOpenExistingTrades'] ?? $data['isOpenExistingTrades'])
+                : null,
             rawData: $data
         );
     }
 
     public function toArray(): array
     {
-        return [
-            'tradeSizeType' => $this->tradeSizeType,
-            'tradeSizeValue' => $this->tradeSizeValue,
-            'isOpenExistingTrades' => $this->isOpenExistingTrades,
-            'isRoundUpToMinimumSize' => $this->isRoundUpToMinimumSize,
+        $array = [
+            'trade_size_type' => $this->tradeSizeType,
+            'trade_size_value' => $this->tradeSizeValue,
+            'is_round_up_to_minimum_size' => $this->isRoundUpToMinimumSize,
             'raw_data' => $this->rawData,
         ];
+
+        if ($this->isOpenExistingTrades !== null) {
+            $array['is_open_existing_trades'] = $this->isOpenExistingTrades;
+        }
+
+        return $array;
     }
 
     public function jsonSerialize(): array

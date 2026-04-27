@@ -9,8 +9,8 @@ class CopyStrategyRequest
     public function __construct(
         public readonly string $tradeSizeType,
         public readonly float $tradeSizeValue,
-        public readonly bool $isOpenExistingTrades = true,
-        public readonly bool $isRoundUpToMinimumSize = true
+        public readonly bool $isOpenExistingTrades,
+        public readonly bool $isRoundUpToMinimumSize
     ) {}
 
     public function toArray(): array
@@ -25,19 +25,19 @@ class CopyStrategyRequest
 
     public static function fromArray(array $data): self
     {
-        if (empty($data['tradeSizeType']) && empty($data['TradeSizeType'])) {
-            throw new InvalidArgumentException('Trade size type is required');
+        if (empty($data['TradeSizeType'])) {
+            throw new InvalidArgumentException('TradeSizeType is required and cannot be empty');
         }
 
-        if (! isset($data['tradeSizeValue']) && ! isset($data['TradeSizeValue'])) {
-            throw new InvalidArgumentException('Trade size value is required');
+        if (! isset($data['TradeSizeValue']) || ! is_numeric($data['TradeSizeValue'])) {
+            throw new InvalidArgumentException('TradeSizeValue is required and must be numeric');
         }
 
         return new self(
-            tradeSizeType: $data['tradeSizeType'] ?? $data['TradeSizeType'],
-            tradeSizeValue: (float) ($data['tradeSizeValue'] ?? $data['TradeSizeValue']),
-            isOpenExistingTrades: $data['isOpenExistingTrades'] ?? $data['IsOpenExistingTrades'] ?? true,
-            isRoundUpToMinimumSize: $data['isRoundUpToMinimumSize'] ?? $data['IsRoundUpToMinimumSize'] ?? true
+            tradeSizeType: $data['TradeSizeType'],
+            tradeSizeValue: (float) $data['TradeSizeValue'],
+            isOpenExistingTrades: (bool) ($data['IsOpenExistingTrades'] ?? false),
+            isRoundUpToMinimumSize: (bool) ($data['IsRoundUpToMinimumSize'] ?? false)
         );
     }
 }

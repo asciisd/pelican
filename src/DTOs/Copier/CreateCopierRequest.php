@@ -4,7 +4,7 @@ namespace Asciisd\Copytrade\DTOs\Copier;
 
 use InvalidArgumentException;
 
-class UpdateCopierRequest
+class CreateCopierRequest
 {
     public function __construct(
         public readonly string $name,

@@ -2,7 +2,6 @@
 
 namespace Asciisd\Copytrade\Services;
 
-use Illuminate\Support\Facades\Http;
 use Asciisd\Copytrade\Contracts\CopierServiceInterface;
 use Asciisd\Copytrade\DTOs\Copier\CopierDTO;
 use Asciisd\Copytrade\DTOs\Copier\CopierStatsDTO;
@@ -11,8 +10,9 @@ use Asciisd\Copytrade\DTOs\Copier\CopyStrategyRequest;
 use Asciisd\Copytrade\DTOs\Copier\CreateCopierRequest;
 use Asciisd\Copytrade\DTOs\Copier\UpdateCopierRequest;
 use Asciisd\Copytrade\DTOs\Copier\UpdateCopySettingsRequest;
-use Asciisd\Copytrade\DTOs\Strategy\SignalDTO;
 use Asciisd\Copytrade\DTOs\Strategy\StrategyDTO;
+use Asciisd\Copytrade\Exceptions\CopytradeException;
+use Illuminate\Support\Facades\Http;
 
 class CopierService implements CopierServiceInterface
 {
@@ -46,7 +46,10 @@ class CopierService implements CopierServiceInterface
     {
         $request = CreateCopierRequest::fromArray($data);
 
-        $response = $this->makeRequest('POST', "/api/profiles/{$profileId}/copiers", $request->toArray());
+        $response = $this->makeRequest('POST',
+            "/api/profiles/{$profileId}/copiers",
+            $request->toArray()
+        );
 
         return CopierDTO::fromResponse($response);
     }
@@ -58,7 +61,10 @@ class CopierService implements CopierServiceInterface
     {
         $request = UpdateCopierRequest::fromArray($data);
 
-        $response = $this->makeRequest('PUT', "/api/profiles/{$profileId}/copiers/{$copierId}", $request->toArray());
+        $response = $this->makeRequest('PUT',
+            "/api/profiles/{$profileId}/copiers/{$copierId}",
+            $request->toArray()
+        );
 
         return CopierDTO::fromResponse($response);
     }
@@ -100,7 +106,14 @@ class CopierService implements CopierServiceInterface
         $response = $client->attach('file', $fileContent, $filename)
             ->put("/api/profiles/{$profileId}/copiers/{$copierId}/image");
 
-        return $response->json() ?? [];
+        $result = $response->json();
+
+        // Ensure we always return an array
+        if (is_string($result)) {
+            return ['url' => $result];
+        }
+
+        return is_array($result) ? $result : [];
     }
 
     /**
@@ -135,7 +148,11 @@ class CopierService implements CopierServiceInterface
     {
         $request = CopyStrategyRequest::fromArray($data);
 
-        $response = $this->makeRequest('POST', "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings", $request->toArray());
+        $response = $this->makeRequest(
+            'POST',
+            "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings",
+            $request->toArray()
+        );
 
         return CopySettingsDTO::fromResponse($response);
     }
@@ -145,9 +162,25 @@ class CopierService implements CopierServiceInterface
      */
     public function getCopySettings(string $copierId, string $strategyId): CopySettingsDTO
     {
-        $response = $this->makeRequest('GET', "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings");
+        $response = $this->makeRequest(
+            'GET',
+            "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings"
+        );
 
         return CopySettingsDTO::fromResponse($response);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function stopCopying(string $copierId, string $strategyId): bool
+    {
+        $this->makeRequest(
+            'DELETE',
+            "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings"
+        );
+
+        return true;
     }
 
     /**
@@ -157,7 +190,11 @@ class CopierService implements CopierServiceInterface
     {
         $request = UpdateCopySettingsRequest::fromArray($data);
 
-        $response = $this->makeRequest('PUT', "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings", $request->toArray());
+        $response = $this->makeRequest(
+            'PUT',
+            "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings",
+            $request->toArray()
+        );
 
         return CopySettingsDTO::fromResponse($response);
     }
@@ -165,27 +202,16 @@ class CopierService implements CopierServiceInterface
     /**
      * {@inheritdoc}
      */
-    public function stopCopyingStrategy(string $copierId, string $strategyId): bool
-    {
-        $this->makeRequest('DELETE', "/api/copiers/{$copierId}/strategies/{$strategyId}/copy-settings");
-
-        return true;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function getMissedSignals(string $profileId, string $copierId): array
     {
-        $response = $this->makeRequest('GET', "/api/profiles/{$profileId}/copiers/{$copierId}/signals/missed");
+        $response = $this->makeRequest(
+            'GET',
+            "/api/profiles/{$profileId}/copiers/{$copierId}/signals/missed"
+        );
 
-        // Extract signals array
         $signals = isset($response[0]) ? $response : ($response['data'] ?? []);
 
-        return array_map(
-            fn (array $signal) => SignalDTO::fromResponse($signal),
-            $signals
-        );
+        return $signals;
     }
 
     /**
@@ -215,6 +241,17 @@ class CopierService implements CopierServiceInterface
             'json' => $data,
         ]);
 
-        return $response->json() ?? [];
+        // Check if response is successful
+        if ($response->failed()) {
+            throw new CopytradeException(
+                "API request failed: {$response->status()} - {$response->body()}",
+                $response->status()
+            );
+        }
+
+        $result = $response->json();
+
+        // Ensure we always return an array
+        return is_array($result) ? $result : [];
     }
 }

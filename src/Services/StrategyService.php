@@ -2,7 +2,6 @@
 
 namespace Asciisd\Copytrade\Services;
 
-use Illuminate\Support\Facades\Http;
 use Asciisd\Copytrade\Contracts\StrategyServiceInterface;
 use Asciisd\Copytrade\DTOs\Copier\CopierDTO;
 use Asciisd\Copytrade\DTOs\Strategy\CreateStrategyRequest;
@@ -11,6 +10,8 @@ use Asciisd\Copytrade\DTOs\Strategy\SignalDTO;
 use Asciisd\Copytrade\DTOs\Strategy\StrategyDTO;
 use Asciisd\Copytrade\DTOs\Strategy\StrategyStatsDTO;
 use Asciisd\Copytrade\DTOs\Strategy\UpdateStrategyRequest;
+use Asciisd\Copytrade\Exceptions\CopytradeException;
+use Illuminate\Support\Facades\Http;
 
 class StrategyService implements StrategyServiceInterface
 {
@@ -44,7 +45,10 @@ class StrategyService implements StrategyServiceInterface
     {
         $request = CreateStrategyRequest::fromArray($data);
 
-        $response = $this->makeRequest('POST', "/api/profiles/{$profileId}/strategies", $request->toArray());
+        $response = $this->makeRequest('POST',
+            "/api/profiles/{$profileId}/strategies",
+            $request->toArray()
+        );
 
         return StrategyDTO::fromResponse($response);
     }
@@ -56,7 +60,10 @@ class StrategyService implements StrategyServiceInterface
     {
         $request = UpdateStrategyRequest::fromArray($data);
 
-        $response = $this->makeRequest('PUT', "/api/profiles/{$profileId}/strategies/{$strategyId}", $request->toArray());
+        $response = $this->makeRequest('PUT',
+            "/api/profiles/{$profileId}/strategies/{$strategyId}",
+            $request->toArray()
+        );
 
         return StrategyDTO::fromResponse($response);
     }
@@ -120,7 +127,14 @@ class StrategyService implements StrategyServiceInterface
         $response = $client->attach('file', $fileContent, $filename)
             ->put("/api/profiles/{$profileId}/strategies/{$strategyId}/image");
 
-        return $response->json() ?? [];
+        $result = $response->json();
+
+        // Ensure we always return an array
+        if (is_string($result)) {
+            return ['url' => $result];
+        }
+
+        return is_array($result) ? $result : [];
     }
 
     /**
@@ -137,7 +151,9 @@ class StrategyService implements StrategyServiceInterface
      */
     public function getStrategyClosedSignals(string $strategyId, string $startDate, string $endDate): array
     {
-        $response = $this->makeRequest('GET', "/api/strategies/{$strategyId}/signals/closed/?startDate={$startDate}&endDate={$endDate}");
+        $response = $this->makeRequest('GET',
+            "/api/strategies/{$strategyId}/signals/closed/?startDate={$startDate}&endDate={$endDate}"
+        );
 
         // Extract signals array
         $signals = isset($response[0]) ? $response : ($response['data'] ?? []);
@@ -191,6 +207,17 @@ class StrategyService implements StrategyServiceInterface
             'json' => $data,
         ]);
 
-        return $response->json() ?? [];
+        // Check if response is successful
+        if ($response->failed()) {
+            throw new CopytradeException(
+                "API request failed: {$response->status()} - {$response->body()}",
+                $response->status()
+            );
+        }
+
+        $result = $response->json();
+
+        // Ensure we always return an array
+        return is_array($result) ? $result : [];
     }
 }

@@ -32,72 +32,73 @@ class CopytradeServiceProvider extends ServiceProvider
         // Validate required configuration
         $this->validateConfiguration();
 
+        // Get common configuration
+        $baseUri = config('copytrade.base_uri');
+        $identityUri = config('copytrade.identity_uri');
+        $timeout = config('copytrade.timeout', 120);
+        $token = config('copytrade.access_token');
+
         // Register Services
-        $this->app->singleton(ProfileServiceInterface::class, function ($app) {
+        $this->app->singleton(ProfileServiceInterface::class, function ($app) use ($baseUri, $identityUri, $timeout, $token) {
             $service = new ProfileService(
-                baseUri: config('copytrade.base_uri'),
-                identityUri: config('copytrade.identity_uri'),
-                timeout: config('copytrade.timeout', 120)
+                baseUri: $baseUri,
+                identityUri: $identityUri,
+                timeout: $timeout
             );
 
-            // Automatically set token from config if available
-            if ($token = config('copytrade.access_token')) {
+            if ($token) {
                 $service->withToken($token);
             }
 
             return $service;
         });
 
-        $this->app->singleton(ServerServiceInterface::class, function ($app) {
+        $this->app->singleton(ServerServiceInterface::class, function ($app) use ($baseUri, $timeout, $token) {
             $service = new ServerService(
-                baseUri: config('copytrade.base_uri'),
-                timeout: config('copytrade.timeout', 120)
+                baseUri: $baseUri,
+                timeout: $timeout
             );
 
-            // Automatically set token from config if available
-            if ($token = config('copytrade.access_token')) {
+            if ($token) {
                 $service->withToken($token);
             }
 
             return $service;
         });
 
-        $this->app->singleton(CopierServiceInterface::class, function ($app) {
+        $this->app->singleton(CopierServiceInterface::class, function ($app) use ($baseUri, $timeout, $token) {
             $service = new CopierService(
-                baseUri: config('copytrade.base_uri'),
-                timeout: config('copytrade.timeout', 120)
+                baseUri: $baseUri,
+                timeout: $timeout
             );
 
-            // Automatically set token from config if available
-            if ($token = config('copytrade.access_token')) {
+            if ($token) {
                 $service->withToken($token);
             }
 
             return $service;
         });
 
-        $this->app->singleton(SectionServiceInterface::class, function ($app) {
+        $this->app->singleton(SectionServiceInterface::class, function ($app) use ($baseUri, $timeout, $token) {
             $service = new SectionService(
-                baseUri: config('copytrade.base_uri'),
-                timeout: config('copytrade.timeout', 120)
+                baseUri: $baseUri,
+                timeout: $timeout
             );
 
-            // Automatically set token from config if available
-            if ($token = config('copytrade.access_token')) {
+            if ($token) {
                 $service->withToken($token);
             }
 
             return $service;
         });
 
-        $this->app->singleton(StrategyServiceInterface::class, function ($app) {
+        $this->app->singleton(StrategyServiceInterface::class, function ($app) use ($baseUri, $timeout, $token) {
             $service = new StrategyService(
-                baseUri: config('copytrade.base_uri'),
-                timeout: config('copytrade.timeout', 120)
+                baseUri: $baseUri,
+                timeout: $timeout
             );
 
-            // Automatically set token from config if available
-            if ($token = config('copytrade.access_token')) {
+            if ($token) {
                 $service->withToken($token);
             }
 
@@ -112,7 +113,7 @@ class CopytradeServiceProvider extends ServiceProvider
                 serverService: $app->make(ServerServiceInterface::class),
                 copierService: $app->make(CopierServiceInterface::class),
                 sectionService: $app->make(SectionServiceInterface::class),
-                strategyService: $app->make(StrategyServiceInterface::class),
+                strategyService: $app->make(StrategyServiceInterface::class)
             );
         });
     }

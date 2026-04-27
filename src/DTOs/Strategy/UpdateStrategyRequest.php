@@ -35,7 +35,7 @@ class UpdateStrategyRequest
             throw new InvalidArgumentException('Strategy name is required and cannot be empty');
         }
 
-        if (empty($data['riskProfile'])) {
+        if (! isset($data['riskProfile']) || $data['riskProfile'] === '' || $data['riskProfile'] === null) {
             throw new InvalidArgumentException('Risk profile is required and cannot be empty');
         }
 

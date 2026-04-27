@@ -5,7 +5,6 @@ namespace Asciisd\Copytrade\Contracts;
 use Asciisd\Copytrade\DTOs\Copier\CopierDTO;
 use Asciisd\Copytrade\DTOs\Copier\CopierStatsDTO;
 use Asciisd\Copytrade\DTOs\Copier\CopySettingsDTO;
-use Asciisd\Copytrade\DTOs\Strategy\SignalDTO;
 use Asciisd\Copytrade\DTOs\Strategy\StrategyDTO;
 
 interface CopierServiceInterface
@@ -55,29 +54,27 @@ interface CopierServiceInterface
     public function getCopierStrategies(string $copierId): array;
 
     /**
-     * Copy a strategy with settings.
+     * Copy a strategy (start copying).
      */
     public function copyStrategy(string $copierId, string $strategyId, array $data): CopySettingsDTO;
 
     /**
-     * Get copy settings for a strategy.
+     * Get copy settings for a specific copier-strategy pair.
      */
     public function getCopySettings(string $copierId, string $strategyId): CopySettingsDTO;
 
     /**
-     * Update copy settings for a strategy.
+     * Stop copying a strategy.
+     */
+    public function stopCopying(string $copierId, string $strategyId): bool;
+
+    /**
+     * Update copy settings for a specific copier-strategy pair.
      */
     public function updateCopySettings(string $copierId, string $strategyId, array $data): CopySettingsDTO;
 
     /**
-     * Stop copying a strategy.
-     */
-    public function stopCopyingStrategy(string $copierId, string $strategyId): bool;
-
-    /**
      * Get missed signals for a copier.
-     *
-     * @return SignalDTO[]
      */
     public function getMissedSignals(string $profileId, string $copierId): array;
 

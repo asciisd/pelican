@@ -3,6 +3,7 @@
 namespace Asciisd\Copytrade\Services;
 
 use Illuminate\Support\Facades\Http;
+
 use Asciisd\Copytrade\Contracts\ServerServiceInterface;
 use Asciisd\Copytrade\DTOs\Server\ServerDTO;
 
@@ -59,6 +60,17 @@ class ServerService implements ServerServiceInterface
             'json' => $data,
         ]);
 
-        return $response->json() ?? [];
+        // Check if response is successful
+        if ($response->failed()) {
+            throw new \Asciisd\Copytrade\Exceptions\CopytradeException(
+                "API request failed: {$response->status()} - {$response->body()}",
+                $response->status()
+            );
+        }
+
+        $result = $response->json();
+
+        // Ensure we always return an array
+        return is_array($result) ? $result : [];
     }
 }

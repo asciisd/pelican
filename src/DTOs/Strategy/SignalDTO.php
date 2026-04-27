@@ -1,77 +1,40 @@
 <?php
 
-namespace Asciisd\Copytrade\Contracts;
+namespace Asciisd\Copytrade\DTOs\Strategy;
 
-use Asciisd\Copytrade\DTOs\Copier\CopierDTO;
-use Asciisd\Copytrade\DTOs\Strategy\SearchStrategyDTO;
-use Asciisd\Copytrade\DTOs\Strategy\SignalDTO;
-use Asciisd\Copytrade\DTOs\Strategy\StrategyDTO;
-use Asciisd\Copytrade\DTOs\Strategy\StrategyStatsDTO;
+use JsonSerializable;
 
-interface StrategyServiceInterface
+class SignalDTO implements JsonSerializable
 {
-    /**
-     * Get strategies connected to profile.
-     *
-     * @return StrategyDTO[]
-     */
-    public function getStrategies(string $profileId): array;
+    public function __construct(
+        public readonly array $rawData = []
+    ) {}
 
     /**
-     * Add strategy to profile.
+     * Create from API response.
      */
-    public function addStrategy(string $profileId, array $data): StrategyDTO;
+    public static function fromResponse(array $data): self
+    {
+        return new self(
+            rawData: $data
+        );
+    }
 
     /**
-     * Update strategy.
+     * Convert to array.
      */
-    public function updateStrategy(string $profileId, string $strategyId, array $data): StrategyDTO;
+    public function toArray(): array
+    {
+        return [
+            'raw_data' => $this->rawData,
+        ];
+    }
 
     /**
-     * Get strategy statistics.
+     * JSON serialization.
      */
-    public function getStrategyStats(string $strategyId): StrategyStatsDTO;
-
-    /**
-     * Search for strategies.
-     *
-     * @return SearchStrategyDTO[]
-     */
-    public function searchStrategies(string $filter): array;
-
-    /**
-     * Get copiers that are copying a strategy.
-     *
-     * @return CopierDTO[]
-     */
-    public function getStrategyCopiers(string $strategyId): array;
-
-    /**
-     * Upload strategy image.
-     */
-    public function uploadStrategyImage(string $profileId, string $strategyId, $fileContent, string $filename): array;
-
-    /**
-     * Get strategy image URL.
-     */
-    public function getStrategyImageUrl(string $strategyId): string;
-
-    /**
-     * Get strategy closed signals.
-     *
-     * @return SignalDTO[]
-     */
-    public function getStrategyClosedSignals(string $strategyId, string $startDate, string $endDate): array;
-
-    /**
-     * Get strategy open signals.
-     *
-     * @return SignalDTO[]
-     */
-    public function getStrategyOpenSignals(string $strategyId): array;
-
-    /**
-     * Set authorization token for requests.
-     */
-    public function withToken(string $token): self;
+    public function jsonSerialize(): array
+    {
+        return $this->toArray();
+    }
 }
