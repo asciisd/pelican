@@ -2,8 +2,6 @@
 
 namespace Asciisd\Copytrade;
 
-use Illuminate\Foundation\AliasLoader;
-use Illuminate\Support\ServiceProvider;
 use Asciisd\Copytrade\Contracts\CopierServiceInterface;
 use Asciisd\Copytrade\Contracts\ProfileServiceInterface;
 use Asciisd\Copytrade\Contracts\SectionServiceInterface;
@@ -14,6 +12,8 @@ use Asciisd\Copytrade\Services\ProfileService;
 use Asciisd\Copytrade\Services\SectionService;
 use Asciisd\Copytrade\Services\ServerService;
 use Asciisd\Copytrade\Services\StrategyService;
+use Illuminate\Foundation\AliasLoader;
+use Illuminate\Support\ServiceProvider;
 use RuntimeException;
 
 class CopytradeServiceProvider extends ServiceProvider
@@ -34,39 +34,74 @@ class CopytradeServiceProvider extends ServiceProvider
 
         // Register Services
         $this->app->singleton(ProfileServiceInterface::class, function ($app) {
-            return new ProfileService(
+            $service = new ProfileService(
                 baseUri: config('copytrade.base_uri'),
                 identityUri: config('copytrade.identity_uri'),
                 timeout: config('copytrade.timeout', 120)
             );
+
+            // Automatically set token from config if available
+            if ($token = config('copytrade.access_token')) {
+                $service->withToken($token);
+            }
+
+            return $service;
         });
 
         $this->app->singleton(ServerServiceInterface::class, function ($app) {
-            return new ServerService(
+            $service = new ServerService(
                 baseUri: config('copytrade.base_uri'),
                 timeout: config('copytrade.timeout', 120)
             );
+
+            // Automatically set token from config if available
+            if ($token = config('copytrade.access_token')) {
+                $service->withToken($token);
+            }
+
+            return $service;
         });
 
         $this->app->singleton(CopierServiceInterface::class, function ($app) {
-            return new CopierService(
+            $service = new CopierService(
                 baseUri: config('copytrade.base_uri'),
                 timeout: config('copytrade.timeout', 120)
             );
+
+            // Automatically set token from config if available
+            if ($token = config('copytrade.access_token')) {
+                $service->withToken($token);
+            }
+
+            return $service;
         });
 
         $this->app->singleton(SectionServiceInterface::class, function ($app) {
-            return new SectionService(
+            $service = new SectionService(
                 baseUri: config('copytrade.base_uri'),
                 timeout: config('copytrade.timeout', 120)
             );
+
+            // Automatically set token from config if available
+            if ($token = config('copytrade.access_token')) {
+                $service->withToken($token);
+            }
+
+            return $service;
         });
 
         $this->app->singleton(StrategyServiceInterface::class, function ($app) {
-            return new StrategyService(
+            $service = new StrategyService(
                 baseUri: config('copytrade.base_uri'),
                 timeout: config('copytrade.timeout', 120)
             );
+
+            // Automatically set token from config if available
+            if ($token = config('copytrade.access_token')) {
+                $service->withToken($token);
+            }
+
+            return $service;
         });
 
         // Register the main class to use with the facade
