@@ -58,6 +58,91 @@ composer require asciisd/copytrade:dev-main
 
 ## ⚙️ Configuration
 
+## 🚀 How to Use
+
+All services can be resolved via Laravel's service container or by instantiating directly. Below are examples for each main service:
+
+### ProfileService
+
+```php
+use Asciisd\Copytrade\Services\ProfileService;
+
+$service = new ProfileService($baseUri, $identityUri);
+$service->withToken('your-access-token');
+
+// Get user info
+$userInfo = $service->getUserInfo();
+
+// Get a profile
+$profile = $service->getProfile($profileId);
+
+// Update a profile
+$updated = $service->updateProfile($profileId, [/* data */]);
+```
+
+### StrategyService
+
+```php
+use Asciisd\Copytrade\Services\StrategyService;
+
+$service = new StrategyService($baseUri);
+$service->withToken('your-access-token');
+
+// List strategies
+$strategies = $service->getStrategies($profileId);
+
+// Add a strategy
+$strategy = $service->addStrategy($profileId, [/* data */]);
+
+// Update a strategy
+$updated = $service->updateStrategy($profileId, $strategyId, [/* data */]);
+```
+
+### CopierService
+
+```php
+use Asciisd\Copytrade\Services\CopierService;
+
+$service = new CopierService($baseUri);
+$service->withToken('your-access-token');
+
+// List copiers
+$copiers = $service->getCopiers($profileId);
+
+// Add a copier
+$copier = $service->addCopier($profileId, [/* data */]);
+
+// Update a copier
+$updated = $service->updateCopier($profileId, $copierId, [/* data */]);
+```
+
+### ServerService
+
+```php
+use Asciisd\Copytrade\Services\ServerService;
+
+$service = new ServerService($baseUri);
+$service->withToken('your-access-token');
+
+// List servers
+$servers = $service->getServers();
+```
+
+### SectionService
+
+```php
+use Asciisd\Copytrade\Services\SectionService;
+
+$service = new SectionService($baseUri);
+$service->withToken('your-access-token');
+
+// List sections
+$sections = $service->getSections();
+
+// Get a section by code
+$section = $service->getSection($code);
+```
+
 ### 1. Publish Configuration
 
 ```bash
