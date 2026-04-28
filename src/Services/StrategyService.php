@@ -10,17 +10,10 @@ use Asciisd\Copytrade\DTOs\Strategy\SignalDTO;
 use Asciisd\Copytrade\DTOs\Strategy\StrategyDTO;
 use Asciisd\Copytrade\DTOs\Strategy\StrategyStatsDTO;
 use Asciisd\Copytrade\DTOs\Strategy\UpdateStrategyRequest;
-use Asciisd\Copytrade\Exceptions\CopytradeException;
 use Illuminate\Support\Facades\Http;
 
-class StrategyService implements StrategyServiceInterface
+class StrategyService extends AbstractService implements StrategyServiceInterface
 {
-    protected ?string $token = null;
-
-    public function __construct(
-        protected string $baseUri,
-        protected int $timeout = 120
-    ) {}
 
     /**
      * {@inheritdoc}
@@ -180,44 +173,4 @@ class StrategyService implements StrategyServiceInterface
         );
     }
 
-    /**
-     * Set authorization token for requests.
-     */
-    public function withToken(string $token): self
-    {
-        $this->token = $token;
-
-        return $this;
-    }
-
-    /**
-     * Make HTTP request.
-     */
-    protected function makeRequest(string $method, string $uri, array $data = []): array
-    {
-        $client = Http::baseUrl($this->baseUri)
-            ->timeout($this->timeout)
-            ->acceptJson();
-
-        if ($this->token) {
-            $client->withToken($this->token);
-        }
-
-        $response = $client->send($method, $uri, [
-            'json' => $data,
-        ]);
-
-        // Check if response is successful
-        if ($response->failed()) {
-            throw new CopytradeException(
-                "API request failed: {$response->status()} - {$response->body()}",
-                $response->status()
-            );
-        }
-
-        $result = $response->json();
-
-        // Ensure we always return an array
-        return is_array($result) ? $result : [];
-    }
 }
