@@ -32,5 +32,5 @@ interface HttpClientInterface
     /**
      * Set the authorization token.
      */
-    public function withToken(string $token): self;
+    public function withToken(string $token): static;
 }

@@ -21,5 +21,5 @@ interface SectionServiceInterface
     /**
      * Set authorization token for requests.
      */
-    public function withToken(string $token): self;
+    public function withToken(string $token): static;
 }
