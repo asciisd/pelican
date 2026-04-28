@@ -35,10 +35,7 @@ Add the repository to your project's `composer.json`:
       "type": "vcs",
       "url": "https://github.com/asciisd/caveofx-copytrade.git"
     }
-  ],
-  "require": {
-    "asciisd/copytrade": "dev-main"
-  }
+  ]
 }
 ```
 
@@ -46,12 +43,6 @@ Then run:
 
 ```bash
 composer install
-```
-
-### Direct Installation
-
-```bash
-composer require asciisd/copytrade:dev-main
 ```
 
 > **Note:** Make sure to add the repository to your `composer.json` first if using direct installation.
