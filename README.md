@@ -24,8 +24,6 @@ A modern, clean Laravel package for integrating with the CopyTrade API. Built wi
 
 ## 📦 Installation
 
-### Via Composer (Recommended)
-
 Add the repository to your project's `composer.json`:
 
 ```json
@@ -35,230 +33,381 @@ Add the repository to your project's `composer.json`:
       "type": "vcs",
       "url": "https://github.com/asciisd/caveofx-copytrade.git"
     }
-  ]
+  ],
+  "require": {
+    "asciisd/copytrade": "dev-main"
+  }
 }
 ```
 
-Then run:
+Then install via Composer:
 
 ```bash
 composer install
 ```
 
-> **Note:** Make sure to add the repository to your `composer.json` first if using direct installation.
+The package will be auto-discovered by Laravel.
 
 ## ⚙️ Configuration
 
-## 🚀 How to Use
+You can publish the configuration file (optional):
 
-All services can be resolved via Laravel's service container or by instantiating directly. Below are all available methods for each main service:
+```bash
+php artisan vendor:publish --provider="Asciisd\Copytrade\CopytradeServiceProvider"
+```
 
----
+## 🚀 Usage Guide
 
-### ProfileService
+All services require authentication via access token. Set the token using `withToken()` method before making API calls.
+
+### Basic Setup
 
 ```php
 use Asciisd\Copytrade\Services\ProfileService;
 
 $service = new ProfileService($baseUri, $identityUri);
 $service->withToken('your-access-token');
+```
+
+---
+
+## 📚 API Reference
+
+### ProfileService
+
+Manage user profiles and account information.
+
+#### Methods
+
+| Method                             | Parameters                         | Returns       | Description                        |
+| ---------------------------------- | ---------------------------------- | ------------- | ---------------------------------- |
+| `getUserInfo()`                    | None                               | `UserInfoDTO` | Get authenticated user information |
+| `getProfile($profileId)`           | `string $profileId`                | `ProfileDTO`  | Get profile by ID                  |
+| `updateProfile($profileId, $data)` | `string $profileId`, `array $data` | `ProfileDTO`  | Update profile information         |
+
+#### Update Profile Parameters
+
+```php
+$data = [
+    'name' => 'Profile Name',        // optional, string
+    'riskProfile' => 1,              // optional, integer
+    'countryCode' => 'US'            // optional, string (ISO country code)
+];
+
+$profile = $service->updateProfile($profileId, $data);
+```
+
+#### Example
+
+```php
+use Asciisd\Copytrade\Services\ProfileService;
+
+$service = new ProfileService($baseUri, $identityUri);
+$service->withToken('your-token');
 
 // Get user info
 $userInfo = $service->getUserInfo();
 
-// Get a profile by ID
-$profile = $service->getProfile($profileId);
+// Get specific profile
+$profile = $service->getProfile('profile-id-123');
 
-// Update a profile
-$updated = $service->updateProfile($profileId, [/* data */]);
+// Update profile
+$updated = $service->updateProfile('profile-id-123', [
+    'name' => 'New Name',
+    'countryCode' => 'EG'
+]);
 ```
-
-**Methods:**
-
-- `getUserInfo()`: Get the authenticated user's info.
-- `getProfile($profileId)`: Get a profile by ID.
-- `updateProfile($profileId, array $data)`: Update a profile.
 
 ---
 
 ### StrategyService
 
+Manage trading strategies, signals, and strategy-related operations.
+
+#### Methods
+
+| Method                                                                  | Parameters                                                                          | Returns               | Description                         |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------- | ----------------------------------- |
+| `getStrategies($profileId)`                                             | `string $profileId`                                                                 | `StrategyDTO[]`       | List all strategies for a profile   |
+| `addStrategy($profileId, $data)`                                        | `string $profileId`, `array $data`                                                  | `StrategyDTO`         | Create a new strategy               |
+| `updateStrategy($profileId, $strategyId, $data)`                        | `string $profileId`, `string $strategyId`, `array $data`                            | `StrategyDTO`         | Update an existing strategy         |
+| `getStrategyStats($strategyId)`                                         | `string $strategyId`                                                                | `StrategyStatsDTO`    | Get strategy statistics             |
+| `searchStrategies($filter)`                                             | `string $filter`                                                                    | `SearchStrategyDTO[]` | Search for strategies               |
+| `getStrategyCopiers($strategyId)`                                       | `string $strategyId`                                                                | `CopierDTO[]`         | Get all copiers using this strategy |
+| `uploadStrategyImage($profileId, $strategyId, $fileContent, $filename)` | `string $profileId`, `string $strategyId`, `mixed $fileContent`, `string $filename` | `array`               | Upload strategy image               |
+| `getStrategyImageUrl($strategyId)`                                      | `string $strategyId`                                                                | `string`              | Get strategy image URL              |
+| `getStrategyClosedSignals($strategyId, $startDate, $endDate)`           | `string $strategyId`, `string $startDate`, `string $endDate`                        | `SignalDTO[]`         | Get closed signals for date range   |
+| `getStrategyOpenSignals($strategyId)`                                   | `string $strategyId`                                                                | `SignalDTO[]`         | Get currently open signals          |
+
+#### Add/Update Strategy Parameters
+
+```php
+$data = [
+    'name' => 'Strategy Name',           // required, string
+    'riskProfile' => 'Conservative',     // required, string
+    'fee' => 10.5,                       // required, float (percentage)
+    'connection' => [
+        'brokerCode' => 'BROKER123',     // required, string
+        'serverCode' => 'SERVER456',     // required, string
+        'username' => 'mt_username',     // required, string
+        'password' => 'mt_password'      // required, string
+    ]
+];
+```
+
+#### Example
+
 ```php
 use Asciisd\Copytrade\Services\StrategyService;
 
 $service = new StrategyService($baseUri);
-$service->withToken('your-access-token');
+$service->withToken('your-token');
 
 // List strategies
-$strategies = $service->getStrategies($profileId);
+$strategies = $service->getStrategies('profile-id-123');
 
-// Add a strategy
-$strategy = $service->addStrategy($profileId, [/* data */]);
-
-// Update a strategy
-$updated = $service->updateStrategy($profileId, $strategyId, [/* data */]);
+// Add a new strategy
+$newStrategy = $service->addStrategy('profile-id-123', [
+    'name' => 'My Trading Strategy',
+    'riskProfile' => 'Moderate',
+    'fee' => 15.0,
+    'connection' => [
+        'brokerCode' => 'XM',
+        'serverCode' => 'XM-Real',
+        'username' => '12345678',
+        'password' => 'MySecurePassword'
+    ]
+]);
 
 // Get strategy stats
-$stats = $service->getStrategyStats($strategyId);
+$stats = $service->getStrategyStats('strategy-id-456');
 
 // Search strategies
-$results = $service->searchStrategies($filter);
-
-// Get copiers for a strategy
-$copiers = $service->getStrategyCopiers($strategyId);
-
-// Upload strategy image
-$service->uploadStrategyImage($profileId, $strategyId, $fileContent, $filename);
-
-// Get strategy image URL
-$url = $service->getStrategyImageUrl($strategyId);
+$results = $service->searchStrategies('forex');
 
 // Get closed signals
-$closedSignals = $service->getStrategyClosedSignals($strategyId, $startDate, $endDate);
+$closedSignals = $service->getStrategyClosedSignals(
+    'strategy-id-456',
+    '2024-01-01',
+    '2024-01-31'
+);
 
 // Get open signals
-$openSignals = $service->getStrategyOpenSignals($strategyId);
+$openSignals = $service->getStrategyOpenSignals('strategy-id-456');
 ```
-
-**Methods:**
-
-- `getStrategies($profileId)`: List all strategies for a profile.
-- `addStrategy($profileId, array $data)`: Add a new strategy.
-- `updateStrategy($profileId, $strategyId, array $data)`: Update a strategy.
-- `getStrategyStats($strategyId)`: Get statistics for a strategy.
-- `searchStrategies($filter)`: Search for strategies.
-- `getStrategyCopiers($strategyId)`: List copiers for a strategy.
-- `uploadStrategyImage($profileId, $strategyId, $fileContent, $filename)`: Upload an image for a strategy.
-- `getStrategyImageUrl($strategyId)`: Get the image URL for a strategy.
-- `getStrategyClosedSignals($strategyId, $startDate, $endDate)`: Get closed signals for a strategy.
-- `getStrategyOpenSignals($strategyId)`: Get open signals for a strategy.
 
 ---
 
 ### CopierService
 
+Manage copiers, copy settings, and copy trading operations.
+
+#### Methods
+
+| Method                                                              | Parameters                                                                        | Returns           | Description                    |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------- | ------------------------------ |
+| `getCopiers($profileId)`                                            | `string $profileId`                                                               | `CopierDTO[]`     | List all copiers for a profile |
+| `addCopier($profileId, $data)`                                      | `string $profileId`, `array $data`                                                | `CopierDTO`       | Create a new copier            |
+| `updateCopier($profileId, $copierId, $data)`                        | `string $profileId`, `string $copierId`, `array $data`                            | `CopierDTO`       | Update an existing copier      |
+| `removeCopier($profileId, $copierId)`                               | `string $profileId`, `string $copierId`                                           | `bool`            | Delete a copier                |
+| `getCopierStats($copierId)`                                         | `string $copierId`                                                                | `CopierStatsDTO`  | Get copier statistics          |
+| `uploadCopierImage($profileId, $copierId, $fileContent, $filename)` | `string $profileId`, `string $copierId`, `mixed $fileContent`, `string $filename` | `array`           | Upload copier image            |
+| `getCopierImageUrl($copierId)`                                      | `string $copierId`                                                                | `string`          | Get copier image URL           |
+| `getCopierStrategies($copierId)`                                    | `string $copierId`                                                                | `StrategyDTO[]`   | List strategies being copied   |
+| `copyStrategy($copierId, $strategyId, $data)`                       | `string $copierId`, `string $strategyId`, `array $data`                           | `CopySettingsDTO` | Start copying a strategy       |
+| `getCopySettings($copierId, $strategyId)`                           | `string $copierId`, `string $strategyId`                                          | `CopySettingsDTO` | Get copy settings              |
+| `stopCopying($copierId, $strategyId)`                               | `string $copierId`, `string $strategyId`                                          | `bool`            | Stop copying a strategy        |
+| `updateCopySettings($copierId, $strategyId, $data)`                 | `string $copierId`, `string $strategyId`, `array $data`                           | `CopySettingsDTO` | Update copy settings           |
+| `getMissedSignals($profileId, $copierId)`                           | `string $profileId`, `string $copierId`                                           | `array`           | Get missed trading signals     |
+
+#### Add/Update Copier Parameters
+
+```php
+$data = [
+    'name' => 'Copier Name',             // required, string
+    'connection' => [
+        'brokerCode' => 'BROKER123',     // required, string
+        'serverCode' => 'SERVER456',     // required, string
+        'username' => 'mt_username',     // required, string
+        'password' => 'mt_password'      // required, string
+    ],
+    'drawdown' => [
+        'currentLevel' => 0.0,           // required, float
+        'softStopLevel' => 20.0,         // required, float (percentage)
+        'hardStopLevel' => 30.0          // required, float (percentage)
+    ]
+];
+```
+
+#### Copy Strategy Parameters
+
+```php
+$data = [
+    'TradeSizeType' => 'FixedLot',       // required, string (FixedLot, Multiplier, Balance)
+    'TradeSizeValue' => 0.01,            // required, float
+    'IsOpenExistingTrades' => true,      // optional, bool (default: false)
+    'IsRoundUpToMinimumSize' => false    // optional, bool (default: false)
+];
+```
+
+#### Update Copy Settings Parameters
+
+```php
+$data = [
+    'TradeSizeType' => 'FixedLot',       // required, string
+    'TradeSizeValue' => 0.02,            // required, float
+    'IsRoundUpToMinimumSize' => true     // optional, bool (default: false)
+];
+```
+
+#### Example
+
 ```php
 use Asciisd\Copytrade\Services\CopierService;
 
 $service = new CopierService($baseUri);
-$service->withToken('your-access-token');
+$service->withToken('your-token');
 
 // List copiers
-$copiers = $service->getCopiers($profileId);
+$copiers = $service->getCopiers('profile-id-123');
 
-// Add a copier
-$copier = $service->addCopier($profileId, [/* data */]);
+// Add a new copier
+$newCopier = $service->addCopier('profile-id-123', [
+    'name' => 'My Copier Account',
+    'connection' => [
+        'brokerCode' => 'XM',
+        'serverCode' => 'XM-Real',
+        'username' => '87654321',
+        'password' => 'MyPassword'
+    ],
+    'drawdown' => [
+        'currentLevel' => 0.0,
+        'softStopLevel' => 15.0,
+        'hardStopLevel' => 25.0
+    ]
+]);
 
-// Update a copier
-$updated = $service->updateCopier($profileId, $copierId, [/* data */]);
-
-// Remove a copier
-$service->removeCopier($profileId, $copierId);
-
-// Get copier stats
-$stats = $service->getCopierStats($copierId);
-
-// Upload copier image
-$service->uploadCopierImage($profileId, $copierId, $fileContent, $filename);
-
-// Get copier image URL
-$url = $service->getCopierImageUrl($copierId);
-
-// Get copier strategies
-$strategies = $service->getCopierStrategies($copierId);
-
-// Copy a strategy
-$copySettings = $service->copyStrategy($copierId, $strategyId, [/* data */]);
-
-// Get copy settings
-$settings = $service->getCopySettings($copierId, $strategyId);
-
-// Stop copying
-$service->stopCopying($copierId, $strategyId);
+// Start copying a strategy
+$copySettings = $service->copyStrategy('copier-id-789', 'strategy-id-456', [
+    'TradeSizeType' => 'FixedLot',
+    'TradeSizeValue' => 0.01,
+    'IsOpenExistingTrades' => true,
+    'IsRoundUpToMinimumSize' => false
+]);
 
 // Update copy settings
-$updatedSettings = $service->updateCopySettings($copierId, $strategyId, [/* data */]);
+$updated = $service->updateCopySettings('copier-id-789', 'strategy-id-456', [
+    'TradeSizeType' => 'Multiplier',
+    'TradeSizeValue' => 2.0,
+    'IsRoundUpToMinimumSize' => true
+]);
+
+// Stop copying
+$service->stopCopying('copier-id-789', 'strategy-id-456');
+
+// Get copier stats
+$stats = $service->getCopierStats('copier-id-789');
 
 // Get missed signals
-$missedSignals = $service->getMissedSignals($profileId, $copierId);
+$missedSignals = $service->getMissedSignals('profile-id-123', 'copier-id-789');
 ```
-
-**Methods:**
-
-- `getCopiers($profileId)`: List all copiers for a profile.
-- `addCopier($profileId, array $data)`: Add a new copier.
-- `updateCopier($profileId, $copierId, array $data)`: Update a copier.
-- `removeCopier($profileId, $copierId)`: Remove a copier.
-- `getCopierStats($copierId)`: Get statistics for a copier.
-- `uploadCopierImage($profileId, $copierId, $fileContent, $filename)`: Upload an image for a copier.
-- `getCopierImageUrl($copierId)`: Get the image URL for a copier.
-- `getCopierStrategies($copierId)`: List strategies for a copier.
-- `copyStrategy($copierId, $strategyId, array $data)`: Copy a strategy to a copier.
-- `getCopySettings($copierId, $strategyId)`: Get copy settings for a copier/strategy pair.
-- `stopCopying($copierId, $strategyId)`: Stop copying a strategy.
-- `updateCopySettings($copierId, $strategyId, array $data)`: Update copy settings.
-- `getMissedSignals($profileId, $copierId)`: Get missed signals for a copier.
 
 ---
 
 ### ServerService
 
+Retrieve available trading servers.
+
+#### Methods
+
+| Method         | Parameters | Returns       | Description                |
+| -------------- | ---------- | ------------- | -------------------------- |
+| `getServers()` | None       | `ServerDTO[]` | List all available servers |
+
+#### Example
+
 ```php
 use Asciisd\Copytrade\Services\ServerService;
 
 $service = new ServerService($baseUri);
-$service->withToken('your-access-token');
+$service->withToken('your-token');
 
-// List servers
+// Get all servers
 $servers = $service->getServers();
+
+foreach ($servers as $server) {
+    echo $server->name . ' - ' . $server->code . PHP_EOL;
+}
 ```
-
-**Methods:**
-
-- `getServers()`: List all available servers.
 
 ---
 
 ### SectionService
 
-```php
-use Asciisd\Copytrade\Services\SectionService;
+Retrieve discovery sections and categories.
 
-$service = new SectionService($baseUri);
-$service->withToken('your-access-token');
+#### Methods
 
-// List sections
-$sections = $service->getSections();
+| Method              | Parameters     | Returns        | Description                    |
+| ------------------- | -------------- | -------------- | ------------------------------ |
+| `getSections()`     | None           | `SectionDTO[]` | List all available sections    |
+| `getSection($code)` | `string $code` | `SectionDTO`   | Get a specific section by code |
 
-// Get a section by code
-$section = $service->getSection($code);
-```
-
-**Methods:**
-
-- `getSections()`: List all available sections.
-- `getSection($code)`: Get a section by its code.
-
-### SectionService
+#### Example
 
 ```php
 use Asciisd\Copytrade\Services\SectionService;
 
 $service = new SectionService($baseUri);
-$service->withToken('your-access-token');
+$service->withToken('your-token');
 
-// List sections
+// List all sections
+$sections = $service->getSections();
+
+// Get specific section
+$section = $service->getSection('forex-strategies');
+```
+
+---
+
+## 🔒 Error Handling
+
+The package provides specific exception types:
+
+- `AuthenticationException` - Authentication failures
+- `NotFoundException` - Resource not found
+- `RateLimitException` - API rate limit exceeded
+- `ValidationException` - Invalid request data
+- `CopytradeException` - General API errors
+
+```php
+use Asciisd\Copytrade\Exceptions\AuthenticationException;
+use Asciisd\Copytrade\Exceptions\NotFoundException;
+
+try {
+    $profile = $service->getProfile('invalid-id');
+} catch (NotFoundException $e) {
+    // Handle not found
+} catch (AuthenticationException $e) {
+    // Handle auth error
+}
+```
+
+## 📝 License
+
+This package is open-sourced software licensed under the MIT license
 $sections = $service->getSections();
 
 // Get a section by code
 $section = $service->getSection($code);
-```
+
+````
 
 ### 1. Publish Configuration
 
 ```bash
 php artisan vendor:publish --tag=copytrade-config
-```
+````
 
 This creates `config/copytrade.php` in your Laravel application.
 
