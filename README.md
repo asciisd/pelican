@@ -51,7 +51,9 @@ composer install
 
 ## 🚀 How to Use
 
-All services can be resolved via Laravel's service container or by instantiating directly. Below are examples for each main service:
+All services can be resolved via Laravel's service container or by instantiating directly. Below are all available methods for each main service:
+
+---
 
 ### ProfileService
 
@@ -64,12 +66,20 @@ $service->withToken('your-access-token');
 // Get user info
 $userInfo = $service->getUserInfo();
 
-// Get a profile
+// Get a profile by ID
 $profile = $service->getProfile($profileId);
 
 // Update a profile
 $updated = $service->updateProfile($profileId, [/* data */]);
 ```
+
+**Methods:**
+
+- `getUserInfo()`: Get the authenticated user's info.
+- `getProfile($profileId)`: Get a profile by ID.
+- `updateProfile($profileId, array $data)`: Update a profile.
+
+---
 
 ### StrategyService
 
@@ -87,7 +97,43 @@ $strategy = $service->addStrategy($profileId, [/* data */]);
 
 // Update a strategy
 $updated = $service->updateStrategy($profileId, $strategyId, [/* data */]);
+
+// Get strategy stats
+$stats = $service->getStrategyStats($strategyId);
+
+// Search strategies
+$results = $service->searchStrategies($filter);
+
+// Get copiers for a strategy
+$copiers = $service->getStrategyCopiers($strategyId);
+
+// Upload strategy image
+$service->uploadStrategyImage($profileId, $strategyId, $fileContent, $filename);
+
+// Get strategy image URL
+$url = $service->getStrategyImageUrl($strategyId);
+
+// Get closed signals
+$closedSignals = $service->getStrategyClosedSignals($strategyId, $startDate, $endDate);
+
+// Get open signals
+$openSignals = $service->getStrategyOpenSignals($strategyId);
 ```
+
+**Methods:**
+
+- `getStrategies($profileId)`: List all strategies for a profile.
+- `addStrategy($profileId, array $data)`: Add a new strategy.
+- `updateStrategy($profileId, $strategyId, array $data)`: Update a strategy.
+- `getStrategyStats($strategyId)`: Get statistics for a strategy.
+- `searchStrategies($filter)`: Search for strategies.
+- `getStrategyCopiers($strategyId)`: List copiers for a strategy.
+- `uploadStrategyImage($profileId, $strategyId, $fileContent, $filename)`: Upload an image for a strategy.
+- `getStrategyImageUrl($strategyId)`: Get the image URL for a strategy.
+- `getStrategyClosedSignals($strategyId, $startDate, $endDate)`: Get closed signals for a strategy.
+- `getStrategyOpenSignals($strategyId)`: Get open signals for a strategy.
+
+---
 
 ### CopierService
 
@@ -105,7 +151,55 @@ $copier = $service->addCopier($profileId, [/* data */]);
 
 // Update a copier
 $updated = $service->updateCopier($profileId, $copierId, [/* data */]);
+
+// Remove a copier
+$service->removeCopier($profileId, $copierId);
+
+// Get copier stats
+$stats = $service->getCopierStats($copierId);
+
+// Upload copier image
+$service->uploadCopierImage($profileId, $copierId, $fileContent, $filename);
+
+// Get copier image URL
+$url = $service->getCopierImageUrl($copierId);
+
+// Get copier strategies
+$strategies = $service->getCopierStrategies($copierId);
+
+// Copy a strategy
+$copySettings = $service->copyStrategy($copierId, $strategyId, [/* data */]);
+
+// Get copy settings
+$settings = $service->getCopySettings($copierId, $strategyId);
+
+// Stop copying
+$service->stopCopying($copierId, $strategyId);
+
+// Update copy settings
+$updatedSettings = $service->updateCopySettings($copierId, $strategyId, [/* data */]);
+
+// Get missed signals
+$missedSignals = $service->getMissedSignals($profileId, $copierId);
 ```
+
+**Methods:**
+
+- `getCopiers($profileId)`: List all copiers for a profile.
+- `addCopier($profileId, array $data)`: Add a new copier.
+- `updateCopier($profileId, $copierId, array $data)`: Update a copier.
+- `removeCopier($profileId, $copierId)`: Remove a copier.
+- `getCopierStats($copierId)`: Get statistics for a copier.
+- `uploadCopierImage($profileId, $copierId, $fileContent, $filename)`: Upload an image for a copier.
+- `getCopierImageUrl($copierId)`: Get the image URL for a copier.
+- `getCopierStrategies($copierId)`: List strategies for a copier.
+- `copyStrategy($copierId, $strategyId, array $data)`: Copy a strategy to a copier.
+- `getCopySettings($copierId, $strategyId)`: Get copy settings for a copier/strategy pair.
+- `stopCopying($copierId, $strategyId)`: Stop copying a strategy.
+- `updateCopySettings($copierId, $strategyId, array $data)`: Update copy settings.
+- `getMissedSignals($profileId, $copierId)`: Get missed signals for a copier.
+
+---
 
 ### ServerService
 
@@ -118,6 +212,32 @@ $service->withToken('your-access-token');
 // List servers
 $servers = $service->getServers();
 ```
+
+**Methods:**
+
+- `getServers()`: List all available servers.
+
+---
+
+### SectionService
+
+```php
+use Asciisd\Copytrade\Services\SectionService;
+
+$service = new SectionService($baseUri);
+$service->withToken('your-access-token');
+
+// List sections
+$sections = $service->getSections();
+
+// Get a section by code
+$section = $service->getSection($code);
+```
+
+**Methods:**
+
+- `getSections()`: List all available sections.
+- `getSection($code)`: Get a section by its code.
 
 ### SectionService
 
