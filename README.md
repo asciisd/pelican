@@ -395,110 +395,9 @@ try {
 
 ## 📝 License
 
-This package is open-sourced software licensed under the MIT license
-$sections = $service->getSections();
-
-// Get a section by code
-$section = $service->getSection($code);
+This package is open-sourced software licensed under the MIT license.
 
 ````
-
-### 1. Publish Configuration
-
-```bash
-php artisan vendor:publish --tag=copytrade-config
-````
-
-This creates `config/copytrade.php` in your Laravel application.
-
-### 2. Environment Variables
-
-Add your CopyTrade API credentials to `.env`:
-
-```env
-COPYTRADE_BASE_URI=https://papi.copy-trade.io
-COPYTRADE_IDENTITY_URI=https://identity.copy-trade.io
-COPYTRADE_ACCESS_TOKEN=your_access_token_here
-COPYTRADE_CLIENT_ID=pelican
-COPYTRADE_TIMEOUT=30
-```
-
-> **Important:** The access token is automatically loaded from config. You only need `withToken()` to override it at runtime.
-
-## 🚀 Quick Start
-
-```php
-use Copytrade;
-
-// Get your profile
-$userInfo = Copytrade::profiles()->getUserInfo();
-$profile = Copytrade::profiles()->getProfile($userInfo->profileId);
-
-// List strategies
-$strategies = Copytrade::strategies()->getStrategies($userInfo->profileId);
-
-// Search for strategies
-$results = Copytrade::strategies()->searchStrategies('high-frequency');
-
-// Get available servers
-$servers = Copytrade::servers()->getServers();
-```
-
-## 📖 Usage Guide
-
-### Using the Facade
-
-The easiest way to interact with the API:
-
-```php
-use Copytrade;
-
-// Profile operations
-$userInfo = Copytrade::profiles()->getUserInfo();
-$profile = Copytrade::profiles()->getProfile($userInfo->profileId);
-
-// Update profile
-$updated = Copytrade::profiles()->updateProfile($userInfo->profileId, [
-    'name' => 'John Doe',
-    'riskProfile' => 1,
-    'countryCode' => 'US'
-]);
-
-// Strategy operations
-$strategies = Copytrade::strategies()->getStrategies($userInfo->profileId);
-$strategyStats = Copytrade::strategies()->getStrategyStats($strategyId);
-
-// Server operations
-$servers = Copytrade::servers()->getServers();
-```
-
-### Using Dependency Injection
-
-For better testability and type-hinting:
-
-```php
-use Asciisd\Copytrade\Contracts\ProfileServiceInterface;
-use Asciisd\Copytrade\Contracts\StrategyServiceInterface;
-use Asciisd\Copytrade\Contracts\CopierServiceInterface;
-
-class TradingController extends Controller
-{
-    public function __construct(
-        protected ProfileServiceInterface $profileService,
-        protected StrategyServiceInterface $strategyService,
-        protected CopierServiceInterface $copierService
-    ) {}
-
-    public function dashboard()
-    {
-        $userInfo = $this->profileService->getUserInfo();
-        $profile = $this->profileService->getProfile($userInfo->profileId);
-        $strategies = $this->strategyService->getStrategies($userInfo->profileId);
-
-        return view('dashboard', compact('profile', 'strategies'));
-    }
-}
-```
 
 ### Runtime Token Override
 
@@ -514,7 +413,7 @@ $profile = Copytrade::withToken('custom-token')
 $copytrade = Copytrade::withToken('custom-token');
 $profile = $copytrade->profiles()->getProfile($profileId);
 $strategies = $copytrade->strategies()->getStrategies($profileId);
-```
+````
 
 ## 📚 API Reference
 
