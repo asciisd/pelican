@@ -1,13 +1,13 @@
-# CopyTrade Package Implementation Summary
+# Pelican Package Implementation Summary
 
 ## Overview
 
-Successfully implemented a complete, production-ready Laravel package for the CopyTrade API following SOLID principles and clean architecture.
+Successfully implemented a complete, production-ready Laravel package for the CopyTrade (Pelican) API following SOLID principles and clean architecture.
 
 ## Package Structure
 
 ```
-packages/asciisd/copytrade/
+packages/asciisd/pelican/
 ├── src/
 │   ├── Config/
 │   │   └── copytrade.php              ✅ Configuration with base URIs and credentials
@@ -216,19 +216,19 @@ $this->assertEquals('John', $profile->name);
 1. **Install via Composer**:
 
     ```bash
-    composer require asciisd/copytrade:@dev
+    composer require asciisd/pelican:@dev
     ```
 
 2. **Verify Installation**:
 
     ```bash
-    composer show asciisd/copytrade
+    composer show asciisd/pelican
     ```
 
 3. **Check Symlink**:
 
     ```bash
-    ls -la vendor/asciisd/copytrade
+    ls -la vendor/asciisd/pelican
     ```
 
 4. **Publish Config**:

@@ -1,20 +1,21 @@
 {
-  "name": "asciisd/copytrade",
-  "description": "CopyTrade Laravel SDK - a Laravel package for integrating with the CopyTrade API",
+  "name": "asciisd/pelican",
+  "description": "Pelican Laravel SDK - a Laravel package for integrating with the CopyTrade (Pelican) API",
   "type": "library",
   "license": "MIT",
   "keywords": [
     "laravel",
+    "pelican",
     "copytrade",
     "copy-trading",
     "trading",
     "sdk",
     "api-client"
   ],
-  "homepage": "https://github.com/asciisd/caveofx-copytrade",
+  "homepage": "https://github.com/asciisd/pelican",
   "support": {
-    "issues": "https://github.com/asciisd/caveofx-copytrade/issues",
-    "source": "https://github.com/asciisd/caveofx-copytrade"
+    "issues": "https://github.com/asciisd/pelican/issues",
+    "source": "https://github.com/asciisd/pelican"
   },
   "authors": [
     {

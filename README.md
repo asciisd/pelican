@@ -1,4 +1,4 @@
-# CopyTrade Laravel SDK
+# Pelican Laravel SDK
 
 A modern, clean Laravel package for integrating with the CopyTrade (Pelican) API. Built with SOLID principles, type-safety, and developer experience in mind.
 
@@ -18,26 +18,26 @@ A modern, clean Laravel package for integrating with the CopyTrade (Pelican) API
 
 ## Installation
 
-Add the repository to your project's `composer.json`:
+Install the package via Composer:
+
+```bash
+composer require asciisd/pelican
+```
+
+Until the package is published on Packagist, you can install it directly from GitHub by adding the repository to your project's `composer.json`:
 
 ```json
 {
   "repositories": [
     {
       "type": "vcs",
-      "url": "https://github.com/asciisd/caveofx-copytrade.git"
+      "url": "https://github.com/asciisd/pelican.git"
     }
   ],
   "require": {
-    "asciisd/copytrade": "dev-main"
+    "asciisd/pelican": "dev-main"
   }
 }
-```
-
-Then install via Composer:
-
-```bash
-composer install
 ```
 
 The package is auto-discovered by Laravel — no manual provider registration needed.
