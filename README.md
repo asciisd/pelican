@@ -1,5 +1,11 @@
 # Pelican Laravel SDK
 
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/asciisd/pelican.svg?style=flat-square)](https://packagist.org/packages/asciisd/pelican)
+[![Tests](https://img.shields.io/github/actions/workflow/status/asciisd/pelican/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/asciisd/pelican/actions/workflows/tests.yml)
+[![Total Downloads](https://img.shields.io/packagist/dt/asciisd/pelican.svg?style=flat-square)](https://packagist.org/packages/asciisd/pelican)
+[![License](https://img.shields.io/packagist/l/asciisd/pelican.svg?style=flat-square)](https://packagist.org/packages/asciisd/pelican)
+[![PHP Version](https://img.shields.io/packagist/php-v/asciisd/pelican.svg?style=flat-square)](https://packagist.org/packages/asciisd/pelican)
+
 A modern, clean Laravel package for integrating with the CopyTrade (Pelican) API. Built with SOLID principles, type-safety, and developer experience in mind.
 
 ## Features
@@ -18,26 +24,10 @@ A modern, clean Laravel package for integrating with the CopyTrade (Pelican) API
 
 ## Installation
 
-Install the package via Composer:
+Install the package via Composer from [Packagist](https://packagist.org/packages/asciisd/pelican):
 
 ```bash
 composer require asciisd/pelican
-```
-
-Until the package is published on Packagist, you can install it directly from GitHub by adding the repository to your project's `composer.json`:
-
-```json
-{
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "https://github.com/asciisd/pelican.git"
-    }
-  ],
-  "require": {
-    "asciisd/pelican": "dev-main"
-  }
-}
 ```
 
 The package is auto-discovered by Laravel — no manual provider registration needed.
