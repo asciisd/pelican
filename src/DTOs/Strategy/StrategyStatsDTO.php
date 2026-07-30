@@ -2,10 +2,13 @@
 
 namespace Asciisd\Copytrade\DTOs\Strategy;
 
+use Asciisd\Copytrade\DTOs\Concerns\SerializesToArray;
 use JsonSerializable;
 
 class StrategyStatsDTO implements JsonSerializable
 {
+    use SerializesToArray;
+
     public function __construct(
         public readonly array $rawData = []
     ) {}
@@ -28,13 +31,5 @@ class StrategyStatsDTO implements JsonSerializable
         return [
             'raw_data' => $this->rawData,
         ];
-    }
-
-    /**
-     * JSON serialization.
-     */
-    public function jsonSerialize(): array
-    {
-        return $this->toArray();
     }
 }

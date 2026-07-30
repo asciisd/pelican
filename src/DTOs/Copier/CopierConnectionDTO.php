@@ -2,11 +2,14 @@
 
 namespace Asciisd\Copytrade\DTOs\Copier;
 
+use Asciisd\Copytrade\DTOs\Concerns\SerializesToArray;
 use InvalidArgumentException;
 use JsonSerializable;
 
 class CopierConnectionDTO implements JsonSerializable
 {
+    use SerializesToArray;
+
     public function __construct(
         public readonly string $brokerCode,
         public readonly string $serverCode,
@@ -48,10 +51,5 @@ class CopierConnectionDTO implements JsonSerializable
             username: $data['username'],
             password: $data['password']
         );
-    }
-
-    public function jsonSerialize(): array
-    {
-        return $this->toArray();
     }
 }

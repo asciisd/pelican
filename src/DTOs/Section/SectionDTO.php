@@ -2,10 +2,13 @@
 
 namespace Asciisd\Copytrade\DTOs\Section;
 
+use Asciisd\Copytrade\DTOs\Concerns\SerializesToArray;
 use JsonSerializable;
 
 class SectionDTO implements JsonSerializable
 {
+    use SerializesToArray;
+
     public function __construct(
         public readonly array $rawData = []
     ) {}
@@ -28,13 +31,5 @@ class SectionDTO implements JsonSerializable
         return [
             'raw_data' => $this->rawData,
         ];
-    }
-
-    /**
-     * JSON serialization.
-     */
-    public function jsonSerialize(): array
-    {
-        return $this->toArray();
     }
 }

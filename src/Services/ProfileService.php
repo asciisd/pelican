@@ -22,9 +22,9 @@ class ProfileService extends AbstractService implements ProfileServiceInterface
      */
     public function getUserInfo(): UserInfoDTO
     {
-        $response = $this->makeRequest('GET', '/connect/userinfo', baseUri: $this->identityUri);
-
-        return UserInfoDTO::fromResponse($response);
+        return UserInfoDTO::fromResponse(
+            $this->get('/connect/userinfo', baseUri: $this->identityUri)
+        );
     }
 
     /**
@@ -32,9 +32,7 @@ class ProfileService extends AbstractService implements ProfileServiceInterface
      */
     public function getProfile(string $profileId): ProfileDTO
     {
-        $response = $this->makeRequest('GET', "/api/profiles/{$profileId}");
-
-        return ProfileDTO::fromResponse($response);
+        return ProfileDTO::fromResponse($this->get("/api/profiles/{$profileId}"));
     }
 
     /**
@@ -44,8 +42,8 @@ class ProfileService extends AbstractService implements ProfileServiceInterface
     {
         $request = UpdateProfileRequest::fromArray($data);
 
-        $response = $this->makeRequest('PUT', "/api/profiles/{$profileId}", $request->toArray());
-
-        return ProfileDTO::fromResponse($response);
+        return ProfileDTO::fromResponse(
+            $this->put("/api/profiles/{$profileId}", $request->toArray())
+        );
     }
 }

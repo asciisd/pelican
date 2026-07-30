@@ -2,11 +2,14 @@
 
 namespace Asciisd\Copytrade\DTOs\Strategy;
 
+use Asciisd\Copytrade\DTOs\Concerns\SerializesToArray;
 use InvalidArgumentException;
 use JsonSerializable;
 
 class StrategyConnectionDTO implements JsonSerializable
 {
+    use SerializesToArray;
+
     public function __construct(
         public readonly string $brokerCode,
         public readonly string $serverCode,
@@ -54,13 +57,5 @@ class StrategyConnectionDTO implements JsonSerializable
             'username' => $this->username,
             'password' => $this->password,
         ];
-    }
-
-    /**
-     * JSON serialization.
-     */
-    public function jsonSerialize(): array
-    {
-        return $this->toArray();
     }
 }

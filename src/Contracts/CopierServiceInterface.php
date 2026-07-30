@@ -5,6 +5,7 @@ namespace Asciisd\Copytrade\Contracts;
 use Asciisd\Copytrade\DTOs\Copier\CopierDTO;
 use Asciisd\Copytrade\DTOs\Copier\CopierStatsDTO;
 use Asciisd\Copytrade\DTOs\Copier\CopySettingsDTO;
+use Asciisd\Copytrade\DTOs\Strategy\SignalDTO;
 use Asciisd\Copytrade\DTOs\Strategy\StrategyDTO;
 
 interface CopierServiceInterface
@@ -74,7 +75,23 @@ interface CopierServiceInterface
     public function updateCopySettings(string $copierId, string $strategyId, array $data): CopySettingsDTO;
 
     /**
+     * Get the copier's currently open copied signals.
+     *
+     * @return SignalDTO[]
+     */
+    public function getCopierOpenSignals(string $copierId): array;
+
+    /**
+     * Get the copier's closed copied signals within a date range (Y-m-d).
+     *
+     * @return SignalDTO[]
+     */
+    public function getCopierClosedSignals(string $copierId, string $startDate, string $endDate): array;
+
+    /**
      * Get missed signals for a copier.
+     *
+     * @return SignalDTO[]
      */
     public function getMissedSignals(string $profileId, string $copierId): array;
 

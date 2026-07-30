@@ -52,13 +52,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | Authentication Context Class Reference values.
-    | Dynamically uses the client_id: tenant:{client_id}
+    | When left null, defaults to "tenant:{client_id}".
     |
     */
 
-    'acr_values' => env('COPYTRADE_ACR_VALUES', function () {
-        return 'tenant:'.config('copytrade.client_id');
-    }),
+    'acr_values' => env('COPYTRADE_ACR_VALUES', 'tenant:pelican'),
 
     /*
     |--------------------------------------------------------------------------
@@ -66,13 +64,40 @@ return [
     |--------------------------------------------------------------------------
     |
     | The callback URL for authentication redirects.
-    | Dynamically uses the client_id: {client_id}://authenticated
+    | When left null, defaults to "{client_id}://authenticated".
     |
     */
 
-    'callback_url' => env('COPYTRADE_CALLBACK_URL', function () {
-        return config('copytrade.client_id').'://authenticated';
-    }),
+    'callback_url' => env('COPYTRADE_CALLBACK_URL'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Asset URI
+    |--------------------------------------------------------------------------
+    |
+    | The base URI for CopyTrade image assets (copier/strategy thumbnails).
+    |
+    */
+
+    'asset_uri' => env('COPYTRADE_ASSET_URI', 'https://assets.copy-trade.io'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication
+    |--------------------------------------------------------------------------
+    |
+    | Settings for the OAuth2 Authorization Code flow with PKCE.
+    |
+    | - scopes: space-separated OAuth scopes. "offline_access" is required to
+    |   receive a refresh token for automatic token renewal.
+    | - client_secret: leave null for the public "pelican" PKCE client.
+    |
+    */
+
+    'auth' => [
+        'scopes' => env('COPYTRADE_SCOPES', 'openid profile email copytrade'),
+        'client_secret' => env('COPYTRADE_CLIENT_SECRET'),
+    ],
 
     /*
     |--------------------------------------------------------------------------

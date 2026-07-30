@@ -2,6 +2,7 @@
 
 namespace Asciisd\Copytrade;
 
+use Asciisd\Copytrade\Contracts\AuthServiceInterface;
 use Asciisd\Copytrade\Contracts\CopierServiceInterface;
 use Asciisd\Copytrade\Contracts\ProfileServiceInterface;
 use Asciisd\Copytrade\Contracts\SectionServiceInterface;
@@ -29,7 +30,8 @@ class Copytrade
         protected ?ServerServiceInterface $serverService = null,
         protected ?CopierServiceInterface $copierService = null,
         protected ?SectionServiceInterface $sectionService = null,
-        protected ?StrategyServiceInterface $strategyService = null
+        protected ?StrategyServiceInterface $strategyService = null,
+        protected ?AuthServiceInterface $authService = null
     ) {
         $this->config = $config;
     }
@@ -39,9 +41,7 @@ class Copytrade
      */
     public function profiles(): ProfileServiceInterface
     {
-        $service = $this->profileService ?? app(ProfileServiceInterface::class);
-
-        return $this->token ? $service->withToken($this->token) : $service;
+        return $this->service($this->profileService, ProfileServiceInterface::class);
     }
 
     /**
@@ -49,9 +49,7 @@ class Copytrade
      */
     public function servers(): ServerServiceInterface
     {
-        $service = $this->serverService ?? app(ServerServiceInterface::class);
-
-        return $this->token ? $service->withToken($this->token) : $service;
+        return $this->service($this->serverService, ServerServiceInterface::class);
     }
 
     /**
@@ -59,9 +57,7 @@ class Copytrade
      */
     public function copiers(): CopierServiceInterface
     {
-        $service = $this->copierService ?? app(CopierServiceInterface::class);
-
-        return $this->token ? $service->withToken($this->token) : $service;
+        return $this->service($this->copierService, CopierServiceInterface::class);
     }
 
     /**
@@ -69,9 +65,7 @@ class Copytrade
      */
     public function sections(): SectionServiceInterface
     {
-        $service = $this->sectionService ?? app(SectionServiceInterface::class);
-
-        return $this->token ? $service->withToken($this->token) : $service;
+        return $this->service($this->sectionService, SectionServiceInterface::class);
     }
 
     /**
@@ -79,7 +73,25 @@ class Copytrade
      */
     public function strategies(): StrategyServiceInterface
     {
-        $service = $this->strategyService ?? app(StrategyServiceInterface::class);
+        return $this->service($this->strategyService, StrategyServiceInterface::class);
+    }
+
+    /**
+     * Get the authentication service.
+     */
+    public function auth(): AuthServiceInterface
+    {
+        return $this->authService ?? app(AuthServiceInterface::class);
+    }
+
+    /**
+     * Resolve a token-scoped service, preferring an injected instance.
+     *
+     * @param  class-string  $interface
+     */
+    protected function service(?object $injected, string $interface): object
+    {
+        $service = $injected ?? app($interface);
 
         return $this->token ? $service->withToken($this->token) : $service;
     }
@@ -146,13 +158,5 @@ class Copytrade
             'acr_values' => $this->getAcrValues(),
             'callback_url' => $this->getCallbackUrl(),
         ];
-    }
-
-    /**
-     * Test method to verify the package is working.
-     */
-    public function test(): string
-    {
-        return 'CopyTrade package is working! Client ID: '.$this->getClientId();
     }
 }

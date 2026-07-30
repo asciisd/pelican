@@ -2,10 +2,13 @@
 
 namespace Asciisd\Copytrade\DTOs\Profile;
 
+use Asciisd\Copytrade\DTOs\Concerns\SerializesToArray;
 use JsonSerializable;
 
 class UserInfoDTO implements JsonSerializable
 {
+    use SerializesToArray;
+
     public function __construct(
         public readonly string $profileId,
         public readonly array $rawData = []
@@ -31,13 +34,5 @@ class UserInfoDTO implements JsonSerializable
             'profile_id' => $this->profileId,
             'raw_data' => $this->rawData,
         ];
-    }
-
-    /**
-     * JSON serialization.
-     */
-    public function jsonSerialize(): array
-    {
-        return $this->toArray();
     }
 }

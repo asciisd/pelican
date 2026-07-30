@@ -2,10 +2,13 @@
 
 namespace Asciisd\Copytrade\DTOs\Profile;
 
+use Asciisd\Copytrade\DTOs\Concerns\SerializesToArray;
 use JsonSerializable;
 
 class ProfileDTO implements JsonSerializable
 {
+    use SerializesToArray;
+
     public function __construct(
         public readonly string $id,
         public readonly ?string $name = null,
@@ -21,11 +24,11 @@ class ProfileDTO implements JsonSerializable
     public static function fromResponse(array $data): self
     {
         return new self(
-            id: $data['Id'] ?? $data['id'] ?? '',
-            name: $data['Name'] ?? $data['name'] ?? null,
-            riskProfile: $data['RiskProfile'] ?? $data['riskProfile'] ?? null,
-            joined: $data['Joined'] ?? $data['joined'] ?? null,
-            countryCode: $data['CountryCode'] ?? $data['countryCode'] ?? null,
+            id: self::value($data, 'Id', 'id') ?? '',
+            name: self::value($data, 'Name', 'name'),
+            riskProfile: self::value($data, 'RiskProfile', 'riskProfile'),
+            joined: self::value($data, 'Joined', 'joined'),
+            countryCode: self::value($data, 'CountryCode', 'countryCode'),
             rawData: $data
         );
     }
@@ -40,15 +43,7 @@ class ProfileDTO implements JsonSerializable
             'name' => $this->name,
             'risk_profile' => $this->riskProfile,
             'country_code' => $this->countryCode,
-            'raw_data' => $this->rawData, // Debug: see actual API response
+            'raw_data' => $this->rawData,
         ];
-    }
-
-    /**
-     * JSON serialization.
-     */
-    public function jsonSerialize(): array
-    {
-        return $this->toArray();
     }
 }

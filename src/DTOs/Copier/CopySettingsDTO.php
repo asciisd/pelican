@@ -2,10 +2,13 @@
 
 namespace Asciisd\Copytrade\DTOs\Copier;
 
+use Asciisd\Copytrade\DTOs\Concerns\SerializesToArray;
 use JsonSerializable;
 
 class CopySettingsDTO implements JsonSerializable
 {
+    use SerializesToArray;
+
     public function __construct(
         public readonly string $tradeSizeType,
         public readonly float $tradeSizeValue,
@@ -16,13 +19,13 @@ class CopySettingsDTO implements JsonSerializable
 
     public static function fromResponse(array $data): self
     {
+        $isOpenExistingTrades = self::value($data, 'IsOpenExistingTrades', 'isOpenExistingTrades');
+
         return new self(
-            tradeSizeType: $data['TradeSizeType'] ?? $data['tradeSizeType'] ?? '',
-            tradeSizeValue: (float) ($data['TradeSizeValue'] ?? $data['tradeSizeValue'] ?? 0),
-            isRoundUpToMinimumSize: (bool) ($data['IsRoundUpToMinimumSize'] ?? $data['isRoundUpToMinimumSize'] ?? false),
-            isOpenExistingTrades: isset($data['IsOpenExistingTrades']) || isset($data['isOpenExistingTrades'])
-                ? (bool) ($data['IsOpenExistingTrades'] ?? $data['isOpenExistingTrades'])
-                : null,
+            tradeSizeType: self::value($data, 'TradeSizeType', 'tradeSizeType') ?? '',
+            tradeSizeValue: (float) (self::value($data, 'TradeSizeValue', 'tradeSizeValue') ?? 0),
+            isRoundUpToMinimumSize: (bool) (self::value($data, 'IsRoundUpToMinimumSize', 'isRoundUpToMinimumSize') ?? false),
+            isOpenExistingTrades: $isOpenExistingTrades !== null ? (bool) $isOpenExistingTrades : null,
             rawData: $data
         );
     }
@@ -41,10 +44,5 @@ class CopySettingsDTO implements JsonSerializable
         }
 
         return $array;
-    }
-
-    public function jsonSerialize(): array
-    {
-        return $this->toArray();
     }
 }

@@ -2,10 +2,13 @@
 
 namespace Asciisd\Copytrade\DTOs\Copier;
 
+use Asciisd\Copytrade\DTOs\Concerns\SerializesToArray;
 use JsonSerializable;
 
 class CopierDrawdownDTO implements JsonSerializable
 {
+    use SerializesToArray;
+
     public function __construct(
         public readonly float $currentLevel,
         public readonly float $softStopLevel,
@@ -28,10 +31,5 @@ class CopierDrawdownDTO implements JsonSerializable
             softStopLevel: (float) ($data['softStopLevel'] ?? $data['soft_stop_level'] ?? 0),
             hardStopLevel: (float) ($data['hardStopLevel'] ?? $data['hard_stop_level'] ?? 0)
         );
-    }
-
-    public function jsonSerialize(): array
-    {
-        return $this->toArray();
     }
 }

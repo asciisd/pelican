@@ -2,10 +2,13 @@
 
 namespace Asciisd\Copytrade\DTOs\Copier;
 
+use Asciisd\Copytrade\DTOs\Concerns\SerializesToArray;
 use JsonSerializable;
 
 class CopierStatsDTO implements JsonSerializable
 {
+    use SerializesToArray;
+
     public function __construct(
         public readonly string $copierId,
         public readonly array $rawData = []
@@ -14,7 +17,7 @@ class CopierStatsDTO implements JsonSerializable
     public static function fromResponse(array $data): self
     {
         return new self(
-            copierId: $data['CopierId'] ?? $data['copier_id'] ?? $data['id'] ?? '',
+            copierId: self::value($data, 'CopierId', 'copier_id', 'id') ?? '',
             rawData: $data
         );
     }
@@ -25,10 +28,5 @@ class CopierStatsDTO implements JsonSerializable
             'copier_id' => $this->copierId,
             'raw_data' => $this->rawData,
         ];
-    }
-
-    public function jsonSerialize(): array
-    {
-        return $this->toArray();
     }
 }

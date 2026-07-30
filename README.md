@@ -1,28 +1,22 @@
 # CopyTrade Laravel SDK
 
-[![PHP Version](https://img.shields.io/badge/php-%5E8.2-blue)](https://php.net)
-[![Laravel](https://img.shields.io/badge/laravel-%5E12.0%20%7C%20%5E13.0-red)](https://laravel.com)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+A modern, clean Laravel package for integrating with the CopyTrade (Pelican) API. Built with SOLID principles, type-safety, and developer experience in mind.
 
-A modern, clean Laravel package for integrating with the CopyTrade API. Built with SOLID principles, type-safety, and developer experience in mind.
+## Features
 
-## 🌟 Features
+- **Full API coverage** — every endpoint in the CopyTrade API collection is available as a typed service method
+- **Built-in OAuth2 login** — Authorization Code with PKCE, driven entirely server-side (no browser needed)
+- **Type-safe DTOs** — fully typed data transfer objects for all API responses
+- **Interface-based services** — easy mocking and testing
+- **Laravel-native** — service container bindings, facade, config publishing, and package auto-discovery
+- **Comprehensive error handling** — specific exceptions for different error types
 
-- ✅ **Clean Architecture** - SOLID principles throughout
-- ✅ **Type-Safe DTOs** - Fully typed data transfer objects for all API responses
-- ✅ **Interface-Based** - Easy mocking and testing
-- ✅ **Laravel Integration** - Service Container, Facades, and auto-discovery
-- ✅ **Comprehensive Error Handling** - Specific exceptions for different error types
-- ✅ **Full API Coverage** - Profiles, Strategies, Copiers, Servers, and Sections
-- ✅ **Developer Friendly** - Intuitive API with great IDE support
-
-## 📋 Requirements
+## Requirements
 
 - PHP 8.2 or higher
 - Laravel 12.0 or 13.0
-- Composer
 
-## 📦 Installation
+## Installation
 
 Add the repository to your project's `composer.json`:
 
@@ -46,885 +40,545 @@ Then install via Composer:
 composer install
 ```
 
-The package will be auto-discovered by Laravel.
+The package is auto-discovered by Laravel — no manual provider registration needed.
 
-## ⚙️ Configuration
+## Configuration
 
-You can publish the configuration file (optional):
+Publish the configuration file (optional — sensible defaults are provided):
 
 ```bash
-php artisan vendor:publish --provider="Asciisd\Copytrade\CopytradeServiceProvider"
+php artisan vendor:publish --tag=copytrade-config
 ```
 
-## 🚀 Usage Guide
+### Environment Variables
 
-All services require authentication via access token. Set the token using `withToken()` method before making API calls.
+```env
+COPYTRADE_BASE_URI=https://papi.copy-trade.io
+COPYTRADE_IDENTITY_URI=https://identity.copy-trade.io
+COPYTRADE_ASSET_URI=https://assets.copy-trade.io
+COPYTRADE_CLIENT_ID=pelican
 
-### Basic Setup
+# Optional — defaults to "{client_id}://authenticated" (pelican://authenticated),
+# which is what the credential-based login() requires. Only set this if you use
+# the browser-based redirect flow with your own registered redirect URI.
+COPYTRADE_CALLBACK_URL=
+
+# Optional — a pre-issued access token applied to every service automatically
+COPYTRADE_ACCESS_TOKEN=
+
+# OAuth2 Authorization Code with PKCE
+COPYTRADE_SCOPES="openid profile email copytrade"
+COPYTRADE_CLIENT_SECRET=              # leave empty for the public Pelican client
+
+# HTTP client
+COPYTRADE_TIMEOUT=30
+```
+
+## Quick Start
 
 ```php
-use Asciisd\Copytrade\Services\ProfileService;
+use Asciisd\Copytrade\Facades\Copytrade;
 
-$service = new ProfileService($baseUri, $identityUri);
-$service->withToken('your-access-token');
+// 1. Log in and get a token
+$token = Copytrade::auth()->login('user@example.com', 'secret-password');
+
+// 2. Scope the SDK to that token
+$copytrade = Copytrade::withToken($token->accessToken);
+
+// 3. Call the API through the domain services
+$user       = $copytrade->profiles()->getUserInfo();
+$profile    = $copytrade->profiles()->getProfile($user->profileId);
+$copiers    = $copytrade->copiers()->getCopiers($user->profileId);
+$strategies = $copytrade->strategies()->getStrategies($user->profileId);
 ```
 
----
+Every API area is exposed as a service off the facade:
 
-## 📚 API Reference
+| Accessor                  | Service           | Responsibility                                          |
+| ------------------------- | ----------------- | ------------------------------------------------------- |
+| `Copytrade::auth()`       | `AuthService`     | OAuth2 login, token exchange, refresh, revoke           |
+| `Copytrade::profiles()`   | `ProfileService`  | User info and profile management                        |
+| `Copytrade::servers()`    | `ServerService`   | Available trading servers                               |
+| `Copytrade::strategies()` | `StrategyService` | Strategies, stats, search, signals, images              |
+| `Copytrade::copiers()`    | `CopierService`   | Copiers, copy settings, copier signals, images          |
+| `Copytrade::sections()`   | `SectionService`  | Discover sections                                       |
 
-### ProfileService
+## Authentication
+
+The CopyTrade API uses the OAuth2 Authorization Code flow with PKCE. The package
+drives the whole flow for you — log in with an email and password and get a
+token back in one call.
+
+### Login with credentials (recommended)
+
+```php
+use Asciisd\Copytrade\Facades\Copytrade;
+
+$token = Copytrade::auth()->login('user@example.com', 'secret-password');
+
+$token->accessToken;   // "eyJhbGciOi..." — use this for API calls
+$token->refreshToken;  // used to renew the access token
+$token->expiresIn;     // lifetime in seconds (e.g. 3600)
+$token->expiresAt;     // CarbonImmutable expiry timestamp
+$token->tokenType;     // "Bearer"
+```
+
+Behind the scenes the package walks the Pelican identity server's hosted login
+page server-side (authorize → login form → authorization code → token
+exchange), so no browser, iframe, or callback route is needed.
+
+A failed login (wrong credentials, misconfigured client, etc.) throws an
+`Asciisd\Copytrade\Exceptions\AuthenticationException`:
+
+```php
+use Asciisd\Copytrade\Exceptions\AuthenticationException;
+
+try {
+    $token = Copytrade::auth()->login($email, $password);
+} catch (AuthenticationException $e) {
+    // e.g. "Login failed: invalid email or password."
+    report($e);
+}
+```
+
+### Storing and reusing the token
+
+`TokenDTO` serializes cleanly, so you can cache it and refresh it when it
+expires:
+
+```php
+use Asciisd\Copytrade\DTOs\Auth\TokenDTO;
+use Illuminate\Support\Facades\Cache;
+
+$token = Cache::get('copytrade_token')
+    ? TokenDTO::fromArray(Cache::get('copytrade_token'))
+    : null;
+
+if ($token === null) {
+    $token = Copytrade::auth()->login($email, $password);
+} elseif ($token->isExpired(buffer: 60)) {
+    $token = $token->canRefresh()
+        ? Copytrade::auth()->refresh($token->refreshToken)
+        : Copytrade::auth()->login($email, $password);
+}
+
+Cache::put('copytrade_token', $token->toArray(), $token->expiresAt);
+```
+
+Revoke a token when you are done with it:
+
+```php
+Copytrade::auth()->revoke($token->accessToken);
+Copytrade::auth()->revoke($token->refreshToken, 'refresh_token');
+```
+
+### Browser-based login (advanced)
+
+If you prefer to send the user to Pelican's hosted login page in their own
+browser, generate an authorization request, store its state and PKCE verifier
+in the session, and redirect:
+
+```php
+use Asciisd\Copytrade\Facades\Copytrade;
+
+$authorization = Copytrade::auth()->authorizationRequest(
+    redirectUri: 'https://your-app.example.com/copytrade/callback',
+);
+
+session([
+    'copytrade_oauth_state' => $authorization->state,
+    'copytrade_code_verifier' => $authorization->codeVerifier,
+]);
+
+return redirect()->away($authorization->authorizationUrl);
+```
+
+Then validate the returned state on your callback route before exchanging the
+one-time authorization code:
+
+```php
+use Illuminate\Http\Request;
+
+public function callback(Request $request)
+{
+    abort_unless(
+        hash_equals(
+            (string) $request->session()->pull('copytrade_oauth_state'),
+            (string) $request->query('state'),
+        ),
+        403,
+        'Invalid OAuth state.',
+    );
+
+    $token = Copytrade::auth()->exchangeCode(
+        code: (string) $request->query('code'),
+        codeVerifier: (string) $request->session()->pull('copytrade_code_verifier'),
+        redirectUri: 'https://your-app.example.com/copytrade/callback',
+    );
+
+    $request->session()->put('copytrade_access_token', $token->accessToken);
+
+    return redirect('/dashboard');
+}
+```
+
+The redirect URI must exactly match a redirect URI registered for the Pelican
+OAuth client. Note: the default public `pelican` client only allows its custom
+scheme callback (`pelican://authenticated`), which is why the credential-based
+`login()` above is the recommended path.
+
+### Token scoping
+
+`withToken()` returns token-scoped copies of the services and never mutates
+the shared singletons, so it is safe to work with several accounts side by
+side:
+
+```php
+$accountA = Copytrade::withToken($tokenA->accessToken);
+$accountB = Copytrade::withToken($tokenB->accessToken);
+
+$profileA = $accountA->profiles()->getProfile($profileIdA);
+$profileB = $accountB->profiles()->getProfile($profileIdB);
+```
+
+If `COPYTRADE_ACCESS_TOKEN` is set, that token is applied to every service
+automatically and `withToken()` is only needed for overrides.
+
+## API Reference
+
+### ProfileService — `Copytrade::profiles()`
 
 Manage user profiles and account information.
 
-#### Methods
-
-| Method                             | Parameters                         | Returns       | Description                        |
-| ---------------------------------- | ---------------------------------- | ------------- | ---------------------------------- |
-| `getUserInfo()`                    | None                               | `UserInfoDTO` | Get authenticated user information |
-| `getProfile($profileId)`           | `string $profileId`                | `ProfileDTO`  | Get profile by ID                  |
-| `updateProfile($profileId, $data)` | `string $profileId`, `array $data` | `ProfileDTO`  | Update profile information         |
-
-#### Update Profile Parameters
+| Method                             | Returns       | API Endpoint                        |
+| ---------------------------------- | ------------- | ----------------------------------- |
+| `getUserInfo()`                    | `UserInfoDTO` | `GET {identity}/connect/userinfo`   |
+| `getProfile($profileId)`           | `ProfileDTO`  | `GET /api/profiles/{id}`            |
+| `updateProfile($profileId, $data)` | `ProfileDTO`  | `PUT /api/profiles/{id}`            |
 
 ```php
-$data = [
-    'name' => 'Profile Name',        // optional, string
-    'riskProfile' => 1,              // optional, integer
-    'countryCode' => 'US'            // optional, string (ISO country code)
-];
+// The user info response contains your profile ID
+$user = Copytrade::withToken($accessToken)->profiles()->getUserInfo();
 
-$profile = $service->updateProfile($profileId, $data);
-```
+$profile = Copytrade::withToken($accessToken)->profiles()->getProfile($user->profileId);
 
-#### Example
-
-```php
-use Asciisd\Copytrade\Services\ProfileService;
-
-$service = new ProfileService($baseUri, $identityUri);
-$service->withToken('your-token');
-
-// Get user info
-$userInfo = $service->getUserInfo();
-
-// Get specific profile
-$profile = $service->getProfile('profile-id-123');
-
-// Update profile
-$updated = $service->updateProfile('profile-id-123', [
-    'name' => 'New Name',
-    'countryCode' => 'EG'
+$updated = Copytrade::withToken($accessToken)->profiles()->updateProfile($user->profileId, [
+    'name' => 'New Name',          // optional, string
+    'riskProfile' => 'Moderate',   // optional, string
+    'countryCode' => 'EG',         // optional, ISO country code
 ]);
 ```
 
----
+### ServerService — `Copytrade::servers()`
 
-### StrategyService
-
-Manage trading strategies, signals, and strategy-related operations.
-
-#### Methods
-
-| Method                                                                  | Parameters                                                                          | Returns               | Description                         |
-| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------- | ----------------------------------- |
-| `getStrategies($profileId)`                                             | `string $profileId`                                                                 | `StrategyDTO[]`       | List all strategies for a profile   |
-| `addStrategy($profileId, $data)`                                        | `string $profileId`, `array $data`                                                  | `StrategyDTO`         | Create a new strategy               |
-| `updateStrategy($profileId, $strategyId, $data)`                        | `string $profileId`, `string $strategyId`, `array $data`                            | `StrategyDTO`         | Update an existing strategy         |
-| `getStrategyStats($strategyId)`                                         | `string $strategyId`                                                                | `StrategyStatsDTO`    | Get strategy statistics             |
-| `searchStrategies($filter)`                                             | `string $filter`                                                                    | `SearchStrategyDTO[]` | Search for strategies               |
-| `getStrategyCopiers($strategyId)`                                       | `string $strategyId`                                                                | `CopierDTO[]`         | Get all copiers using this strategy |
-| `uploadStrategyImage($profileId, $strategyId, $fileContent, $filename)` | `string $profileId`, `string $strategyId`, `mixed $fileContent`, `string $filename` | `array`               | Upload strategy image               |
-| `getStrategyImageUrl($strategyId)`                                      | `string $strategyId`                                                                | `string`              | Get strategy image URL              |
-| `getStrategyClosedSignals($strategyId, $startDate, $endDate)`           | `string $strategyId`, `string $startDate`, `string $endDate`                        | `SignalDTO[]`         | Get closed signals for date range   |
-| `getStrategyOpenSignals($strategyId)`                                   | `string $strategyId`                                                                | `SignalDTO[]`         | Get currently open signals          |
-
-#### Add/Update Strategy Parameters
+| Method         | Returns       | API Endpoint       |
+| -------------- | ------------- | ------------------ |
+| `getServers()` | `ServerDTO[]` | `GET /api/servers` |
 
 ```php
-$data = [
-    'name' => 'Strategy Name',           // required, string
-    'riskProfile' => 'Conservative',     // required, string
-    'fee' => 10.5,                       // required, float (percentage)
-    'connection' => [
-        'brokerCode' => 'BROKER123',     // required, string
-        'serverCode' => 'SERVER456',     // required, string
-        'username' => 'mt_username',     // required, string
-        'password' => 'mt_password'      // required, string
-    ]
-];
+$servers = Copytrade::withToken($accessToken)->servers()->getServers();
 ```
 
-#### Example
+Use the returned server codes when creating copier or strategy connections.
+
+### StrategyService — `Copytrade::strategies()`
+
+Manage trading strategies, stats, search, signals, and strategy images.
+
+| Method                                                                  | Returns               | API Endpoint                                                     |
+| ----------------------------------------------------------------------- | --------------------- | ----------------------------------------------------------------- |
+| `getStrategies($profileId)`                                             | `StrategyDTO[]`       | `GET /api/profiles/{id}/strategies`                               |
+| `addStrategy($profileId, $data)`                                        | `StrategyDTO`         | `POST /api/profiles/{id}/strategies`                              |
+| `updateStrategy($profileId, $strategyId, $data)`                        | `StrategyDTO`         | `PUT /api/profiles/{id}/strategies/{strategyId}`                  |
+| `getStrategyStats($strategyId)`                                         | `StrategyStatsDTO`    | `GET /api/strategies/{id}/stats`                                  |
+| `searchStrategies($filter)`                                             | `SearchStrategyDTO[]` | `GET /api/strategies?filter=`                                     |
+| `getStrategyCopiers($strategyId)`                                       | `CopierDTO[]`         | `GET /api/strategies/{id}/copiers`                                |
+| `getStrategyOpenSignals($strategyId)`                                   | `SignalDTO[]`         | `GET /api/strategies/{id}/signals/open`                           |
+| `getStrategyClosedSignals($strategyId, $startDate, $endDate)`           | `SignalDTO[]`         | `GET /api/strategies/{id}/signals/closed?startDate=&endDate=`     |
+| `uploadStrategyImage($profileId, $strategyId, $fileContent, $filename)` | `array`               | `PUT /api/profiles/{id}/strategies/{strategyId}/image`            |
+| `getStrategyImageUrl($strategyId)`                                      | `string`              | `{assets}/images/strategies/thumbnails/{id}` (URL builder)        |
 
 ```php
-use Asciisd\Copytrade\Services\StrategyService;
+$strategies = Copytrade::withToken($accessToken)->strategies();
 
-$service = new StrategyService($baseUri);
-$service->withToken('your-token');
-
-// List strategies
-$strategies = $service->getStrategies('profile-id-123');
-
-// Add a new strategy
-$newStrategy = $service->addStrategy('profile-id-123', [
-    'name' => 'My Trading Strategy',
-    'riskProfile' => 'Moderate',
-    'fee' => 15.0,
+// Create a strategy (a master account whose trades will be copied)
+$strategy = $strategies->addStrategy($profileId, [
+    'name' => 'My Trading Strategy',    // required, string
+    'riskProfile' => 'Moderate',        // required, string
+    'fee' => 15.0,                      // required, float (percentage)
     'connection' => [
-        'brokerCode' => 'XM',
-        'serverCode' => 'XM-Real',
-        'username' => '12345678',
-        'password' => 'MySecurePassword'
-    ]
+        'brokerCode' => 'XM',           // required, string
+        'serverCode' => 'XM-Real',      // required, string
+        'username' => '12345678',       // required, string (MT login)
+        'password' => 'MySecurePass',   // required, string (MT password)
+    ],
 ]);
 
-// Get strategy stats
-$stats = $service->getStrategyStats('strategy-id-456');
+// Discover strategies
+$results = $strategies->searchStrategies('forex');
+$stats = $strategies->getStrategyStats($strategy->id);
 
-// Search strategies
-$results = $service->searchStrategies('forex');
+// Signal history
+$open = $strategies->getStrategyOpenSignals($strategy->id);
+$closed = $strategies->getStrategyClosedSignals($strategy->id, '2024-01-01', '2024-01-31');
 
-// Get closed signals
-$closedSignals = $service->getStrategyClosedSignals(
-    'strategy-id-456',
-    '2024-01-01',
-    '2024-01-31'
-);
-
-// Get open signals
-$openSignals = $service->getStrategyOpenSignals('strategy-id-456');
+// Images
+$strategies->uploadStrategyImage($profileId, $strategy->id, file_get_contents($path), 'logo.png');
+$thumbnailUrl = $strategies->getStrategyImageUrl($strategy->id); // public URL, no auth needed
 ```
 
----
+### CopierService — `Copytrade::copiers()`
 
-### CopierService
+Manage copiers (follower accounts), copy settings, copier signals, and copier images.
 
-Manage copiers, copy settings, and copy trading operations.
-
-#### Methods
-
-| Method                                                              | Parameters                                                                        | Returns           | Description                    |
-| ------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------- | ------------------------------ |
-| `getCopiers($profileId)`                                            | `string $profileId`                                                               | `CopierDTO[]`     | List all copiers for a profile |
-| `addCopier($profileId, $data)`                                      | `string $profileId`, `array $data`                                                | `CopierDTO`       | Create a new copier            |
-| `updateCopier($profileId, $copierId, $data)`                        | `string $profileId`, `string $copierId`, `array $data`                            | `CopierDTO`       | Update an existing copier      |
-| `removeCopier($profileId, $copierId)`                               | `string $profileId`, `string $copierId`                                           | `bool`            | Delete a copier                |
-| `getCopierStats($copierId)`                                         | `string $copierId`                                                                | `CopierStatsDTO`  | Get copier statistics          |
-| `uploadCopierImage($profileId, $copierId, $fileContent, $filename)` | `string $profileId`, `string $copierId`, `mixed $fileContent`, `string $filename` | `array`           | Upload copier image            |
-| `getCopierImageUrl($copierId)`                                      | `string $copierId`                                                                | `string`          | Get copier image URL           |
-| `getCopierStrategies($copierId)`                                    | `string $copierId`                                                                | `StrategyDTO[]`   | List strategies being copied   |
-| `copyStrategy($copierId, $strategyId, $data)`                       | `string $copierId`, `string $strategyId`, `array $data`                           | `CopySettingsDTO` | Start copying a strategy       |
-| `getCopySettings($copierId, $strategyId)`                           | `string $copierId`, `string $strategyId`                                          | `CopySettingsDTO` | Get copy settings              |
-| `stopCopying($copierId, $strategyId)`                               | `string $copierId`, `string $strategyId`                                          | `bool`            | Stop copying a strategy        |
-| `updateCopySettings($copierId, $strategyId, $data)`                 | `string $copierId`, `string $strategyId`, `array $data`                           | `CopySettingsDTO` | Update copy settings           |
-| `getMissedSignals($profileId, $copierId)`                           | `string $profileId`, `string $copierId`                                           | `array`           | Get missed trading signals     |
-
-#### Add/Update Copier Parameters
+| Method                                                              | Returns           | API Endpoint                                                        |
+| ------------------------------------------------------------------- | ----------------- | -------------------------------------------------------------------- |
+| `getCopiers($profileId)`                                            | `CopierDTO[]`     | `GET /api/profiles/{id}/copiers`                                     |
+| `addCopier($profileId, $data)`                                      | `CopierDTO`       | `POST /api/profiles/{id}/copiers`                                    |
+| `updateCopier($profileId, $copierId, $data)`                        | `CopierDTO`       | `PUT /api/profiles/{id}/copiers/{copierId}`                          |
+| `removeCopier($profileId, $copierId)`                               | `bool`            | `DELETE /api/profiles/{id}/copiers/{copierId}`                       |
+| `getCopierStats($copierId)`                                         | `CopierStatsDTO`  | `GET /api/copiers/{id}/stats`                                        |
+| `getCopierStrategies($copierId)`                                    | `StrategyDTO[]`   | `GET /api/copiers/{id}/strategies`                                   |
+| `copyStrategy($copierId, $strategyId, $data)`                       | `CopySettingsDTO` | `POST /api/copiers/{id}/strategies/{strategyId}/copy-settings`       |
+| `getCopySettings($copierId, $strategyId)`                           | `CopySettingsDTO` | `GET /api/copiers/{id}/strategies/{strategyId}/copy-settings`        |
+| `updateCopySettings($copierId, $strategyId, $data)`                 | `CopySettingsDTO` | `PUT /api/copiers/{id}/strategies/{strategyId}/copy-settings`        |
+| `stopCopying($copierId, $strategyId)`                               | `bool`            | `DELETE /api/copiers/{id}/strategies/{strategyId}/copy-settings`     |
+| `getCopierOpenSignals($copierId)`                                   | `SignalDTO[]`     | `GET /api/copiers/{id}/signals/open`                                 |
+| `getCopierClosedSignals($copierId, $startDate, $endDate)`           | `SignalDTO[]`     | `GET /api/copiers/{id}/signals/closed?startDate=&endDate=`           |
+| `getMissedSignals($profileId, $copierId)`                           | `SignalDTO[]`     | `GET /api/profiles/{id}/copiers/{copierId}/signals/missed`           |
+| `uploadCopierImage($profileId, $copierId, $fileContent, $filename)` | `array`           | `PUT /api/profiles/{id}/copiers/{copierId}/image`                    |
+| `getCopierImageUrl($copierId)`                                      | `string`          | `{assets}/images/copiers/thumbnails/{id}` (URL builder)              |
 
 ```php
-$data = [
-    'name' => 'Copier Name',             // required, string
+$copiers = Copytrade::withToken($accessToken)->copiers();
+
+// Create a copier (a follower account that copies strategies)
+$copier = $copiers->addCopier($profileId, [
+    'name' => 'My Copier Account',      // required, string
     'connection' => [
-        'brokerCode' => 'BROKER123',     // required, string
-        'serverCode' => 'SERVER456',     // required, string
-        'username' => 'mt_username',     // required, string
-        'password' => 'mt_password'      // required, string
+        'brokerCode' => 'XM',           // required, string
+        'serverCode' => 'XM-Real',      // required, string
+        'username' => '87654321',       // required, string (MT login)
+        'password' => 'MyPassword',     // required, string (MT password)
     ],
     'drawdown' => [
-        'currentLevel' => 0.0,           // required, float
-        'softStopLevel' => 20.0,         // required, float (percentage)
-        'hardStopLevel' => 30.0          // required, float (percentage)
-    ]
-];
-```
-
-#### Copy Strategy Parameters
-
-```php
-$data = [
-    'TradeSizeType' => 'FixedLot',       // required, string (FixedLot, Multiplier, Balance)
-    'TradeSizeValue' => 0.01,            // required, float
-    'IsOpenExistingTrades' => true,      // optional, bool (default: false)
-    'IsRoundUpToMinimumSize' => false    // optional, bool (default: false)
-];
-```
-
-#### Update Copy Settings Parameters
-
-```php
-$data = [
-    'TradeSizeType' => 'FixedLot',       // required, string
-    'TradeSizeValue' => 0.02,            // required, float
-    'IsRoundUpToMinimumSize' => true     // optional, bool (default: false)
-];
-```
-
-#### Example
-
-```php
-use Asciisd\Copytrade\Services\CopierService;
-
-$service = new CopierService($baseUri);
-$service->withToken('your-token');
-
-// List copiers
-$copiers = $service->getCopiers('profile-id-123');
-
-// Add a new copier
-$newCopier = $service->addCopier('profile-id-123', [
-    'name' => 'My Copier Account',
-    'connection' => [
-        'brokerCode' => 'XM',
-        'serverCode' => 'XM-Real',
-        'username' => '87654321',
-        'password' => 'MyPassword'
+        'currentLevel' => 0.0,          // required, float
+        'softStopLevel' => 15.0,        // required, float (percentage)
+        'hardStopLevel' => 25.0,        // required, float (percentage)
     ],
-    'drawdown' => [
-        'currentLevel' => 0.0,
-        'softStopLevel' => 15.0,
-        'hardStopLevel' => 25.0
-    ]
 ]);
 
 // Start copying a strategy
-$copySettings = $service->copyStrategy('copier-id-789', 'strategy-id-456', [
-    'TradeSizeType' => 'FixedLot',
-    'TradeSizeValue' => 0.01,
-    'IsOpenExistingTrades' => true,
-    'IsRoundUpToMinimumSize' => false
+$settings = $copiers->copyStrategy($copier->id, $strategyId, [
+    'TradeSizeType' => 'Fixed',         // required, string (Fixed, Multiplier, Balance)
+    'TradeSizeValue' => 0.01,           // required, float
+    'IsOpenExistingTrades' => true,     // optional, bool (default: false)
+    'IsRoundUpToMinimumSize' => false,  // optional, bool (default: false)
 ]);
 
-// Update copy settings
-$updated = $service->updateCopySettings('copier-id-789', 'strategy-id-456', [
+// Adjust or stop copying
+$copiers->updateCopySettings($copier->id, $strategyId, [
     'TradeSizeType' => 'Multiplier',
     'TradeSizeValue' => 2.0,
-    'IsRoundUpToMinimumSize' => true
+    'IsRoundUpToMinimumSize' => true,
 ]);
+$copiers->stopCopying($copier->id, $strategyId);
 
-// Stop copying
-$service->stopCopying('copier-id-789', 'strategy-id-456');
-
-// Get copier stats
-$stats = $service->getCopierStats('copier-id-789');
-
-// Get missed signals
-$missedSignals = $service->getMissedSignals('profile-id-123', 'copier-id-789');
+// Monitor the copier
+$stats = $copiers->getCopierStats($copier->id);
+$copied = $copiers->getCopierStrategies($copier->id);
+$open = $copiers->getCopierOpenSignals($copier->id);
+$closed = $copiers->getCopierClosedSignals($copier->id, '2024-05-01', '2024-05-28');
+$missed = $copiers->getMissedSignals($profileId, $copier->id);
 ```
 
----
+### SectionService — `Copytrade::sections()`
 
-### ServerService
+Retrieve the "Discover" sections used to browse featured strategies.
 
-Retrieve available trading servers.
-
-#### Methods
-
-| Method         | Parameters | Returns       | Description                |
-| -------------- | ---------- | ------------- | -------------------------- |
-| `getServers()` | None       | `ServerDTO[]` | List all available servers |
-
-#### Example
+| Method              | Returns        | API Endpoint               |
+| ------------------- | -------------- | -------------------------- |
+| `getSections()`     | `SectionDTO[]` | `GET /api/discover/`       |
+| `getSection($code)` | `SectionDTO`   | `GET /api/discover/{code}` |
 
 ```php
-use Asciisd\Copytrade\Services\ServerService;
+$sections = Copytrade::withToken($accessToken)->sections()->getSections();
 
-$service = new ServerService($baseUri);
-$service->withToken('your-token');
-
-// Get all servers
-$servers = $service->getServers();
-
-foreach ($servers as $server) {
-    echo $server->name . ' - ' . $server->code . PHP_EOL;
-}
+$spotlight = Copytrade::withToken($accessToken)->sections()->getSection('Spotlight');
 ```
 
----
+## Endpoint Coverage
 
-### SectionService
+Every request in the CopyTrade API Postman collection maps to a package method:
 
-Retrieve discovery sections and categories.
+| Postman Request                              | Package Method                                              |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| Get userInfo                                 | `profiles()->getUserInfo()`                                 |
+| Get profile                                  | `profiles()->getProfile($profileId)`                        |
+| Update profile                               | `profiles()->updateProfile($profileId, $data)`              |
+| Get list of available servers                | `servers()->getServers()`                                   |
+| Get copiers connected to profile             | `copiers()->getCopiers($profileId)`                         |
+| Add copier to a profile                      | `copiers()->addCopier($profileId, $data)`                   |
+| Update copier                                | `copiers()->updateCopier($profileId, $copierId, $data)`     |
+| Remove copier                                | `copiers()->removeCopier($profileId, $copierId)`            |
+| Get copiers stats                            | `copiers()->getCopierStats($copierId)`                      |
+| Get strategies being copied by a copier      | `copiers()->getCopierStrategies($copierId)`                 |
+| Copy strategy                                | `copiers()->copyStrategy($copierId, $strategyId, $data)`    |
+| Get copied strategy settings                 | `copiers()->getCopySettings($copierId, $strategyId)`        |
+| Update copied strategy settings              | `copiers()->updateCopySettings($copierId, $strategyId, $data)` |
+| Stop copying a strategy                      | `copiers()->stopCopying($copierId, $strategyId)`            |
+| Get open copied signals                      | `copiers()->getCopierOpenSignals($copierId)`                |
+| Get closed copied signals                    | `copiers()->getCopierClosedSignals($copierId, $start, $end)` |
+| Get missed signals                           | `copiers()->getMissedSignals($profileId, $copierId)`        |
+| Upload copier image                          | `copiers()->uploadCopierImage($profileId, $copierId, $file, $name)` |
+| Get copier image                             | `copiers()->getCopierImageUrl($copierId)`                   |
+| Get strategies connected to profile          | `strategies()->getStrategies($profileId)`                   |
+| Add strategy to profile                      | `strategies()->addStrategy($profileId, $data)`              |
+| Update strategy                              | `strategies()->updateStrategy($profileId, $strategyId, $data)` |
+| Get strategy stats                           | `strategies()->getStrategyStats($strategyId)`               |
+| Search for a strategy                        | `strategies()->searchStrategies($filter)`                   |
+| Get copiers that are copying a strategy      | `strategies()->getStrategyCopiers($strategyId)`             |
+| Get strategy open signals                    | `strategies()->getStrategyOpenSignals($strategyId)`         |
+| Get strategy closed signals                  | `strategies()->getStrategyClosedSignals($strategyId, $start, $end)` |
+| Upload strategy image                        | `strategies()->uploadStrategyImage($profileId, $strategyId, $file, $name)` |
+| Get strategy image                           | `strategies()->getStrategyImageUrl($strategyId)`            |
+| Get discover sections                        | `sections()->getSections()`                                 |
+| Get discover section                         | `sections()->getSection($code)`                             |
 
-#### Methods
+## Data Transfer Objects
 
-| Method              | Parameters     | Returns        | Description                    |
-| ------------------- | -------------- | -------------- | ------------------------------ |
-| `getSections()`     | None           | `SectionDTO[]` | List all available sections    |
-| `getSection($code)` | `string $code` | `SectionDTO`   | Get a specific section by code |
-
-#### Example
+All API responses are wrapped in DTOs. Every DTO exposes typed properties for
+the common fields plus a `rawData` array with the complete, untouched API
+response, and serializes with `toArray()` / `json_encode()`:
 
 ```php
-use Asciisd\Copytrade\Services\SectionService;
+$profile = Copytrade::withToken($accessToken)->profiles()->getProfile($profileId);
 
-$service = new SectionService($baseUri);
-$service->withToken('your-token');
-
-// List all sections
-$sections = $service->getSections();
-
-// Get specific section
-$section = $service->getSection('forex-strategies');
+$profile->name;      // typed accessor
+$profile->rawData;   // full raw API response
+$profile->toArray(); // array representation
 ```
 
----
+| DTO                 | Key Properties                                                        |
+| ------------------- | --------------------------------------------------------------------- |
+| `TokenDTO`          | `accessToken`, `refreshToken`, `expiresIn`, `expiresAt`, `tokenType`  |
+| `UserInfoDTO`       | `profileId`                                                            |
+| `ProfileDTO`        | `id`, `name`, `riskProfile`, `countryCode`                             |
+| `ServerDTO`         | `id`, `name`                                                           |
+| `StrategyDTO`       | `id`, `name`, `riskProfile`, `fee`, `connection`                       |
+| `SearchStrategyDTO` | search result fields                                                   |
+| `StrategyStatsDTO`  | strategy performance statistics                                        |
+| `CopierDTO`         | `id`, `name`, `connection`, `drawdown`                                 |
+| `CopierStatsDTO`    | copier performance statistics                                          |
+| `CopySettingsDTO`   | trade size type/value and copy flags                                   |
+| `SignalDTO`         | `rawData` (signal payload)                                             |
+| `SectionDTO`        | `code`, `title`, `strategies`                                          |
 
-## 🔒 Error Handling
+## Error Handling
 
-The package provides specific exception types:
+The package throws specific exception types, all extending `CopytradeException`:
 
-- `AuthenticationException` - Authentication failures
-- `NotFoundException` - Resource not found
-- `RateLimitException` - API rate limit exceeded
-- `ValidationException` - Invalid request data
-- `CopytradeException` - General API errors
+| Exception                 | When                                  |
+| ------------------------- | ------------------------------------- |
+| `AuthenticationException` | Login/token failures, invalid tokens  |
+| `NotFoundException`       | Resource not found                    |
+| `ValidationException`     | Invalid request data                  |
+| `RateLimitException`      | API rate limit exceeded               |
+| `CopytradeException`      | Any other API error                   |
 
 ```php
 use Asciisd\Copytrade\Exceptions\AuthenticationException;
-use Asciisd\Copytrade\Exceptions\NotFoundException;
-
-try {
-    $profile = $service->getProfile('invalid-id');
-} catch (NotFoundException $e) {
-    // Handle not found
-} catch (AuthenticationException $e) {
-    // Handle auth error
-}
-```
-
-## 📝 License
-
-This package is open-sourced software licensed under the MIT license.
-
-````
-
-### Runtime Token Override
-
-Override the access token for specific requests:
-
-```php
-// Use a different token for this request
-$profile = Copytrade::withToken('custom-token')
-    ->profiles()
-    ->getProfile($profileId);
-
-// Chain multiple calls with the same token
-$copytrade = Copytrade::withToken('custom-token');
-$profile = $copytrade->profiles()->getProfile($profileId);
-$strategies = $copytrade->strategies()->getStrategies($profileId);
-````
-
-## 📚 API Reference
-
-### Profile Service
-
-**Get User Info**
-
-```php
-$userInfo = Copytrade::profiles()->getUserInfo();
-// Returns: UserInfoDTO { profileId, rawData }
-```
-
-**Get Profile**
-
-```php
-$profile = Copytrade::profiles()->getProfile($profileId);
-// Returns: ProfileDTO { id, name, riskProfile, countryCode, rawData }
-```
-
-**Update Profile**
-
-```php
-$profile = Copytrade::profiles()->updateProfile($profileId, [
-    'name' => 'Jane Doe',
-    'riskProfile' => 2,
-    'countryCode' => 'UK'
-]);
-// Returns: ProfileDTO
-```
-
----
-
-### Strategy Service
-
-**Get All Strategies**
-
-```php
-$strategies = Copytrade::strategies()->getStrategies($profileId);
-// Returns: StrategyDTO[]
-```
-
-**Add Strategy**
-
-```php
-$strategy = Copytrade::strategies()->addStrategy($profileId, [
-    'name' => 'My Trading Strategy',
-    'riskProfile' => 'medium',
-    'fee' => 20.0,
-    'connection' => [
-        'serverId' => 'server-123',
-        'login' => '12345',
-        'password' => 'secret'
-    ]
-]);
-// Returns: StrategyDTO
-```
-
-**Update Strategy**
-
-```php
-$strategy = Copytrade::strategies()->updateStrategy($profileId, $strategyId, [
-    'name' => 'Updated Strategy Name',
-    'fee' => 25.0
-]);
-// Returns: StrategyDTO
-```
-
-**Get Strategy Statistics**
-
-```php
-$stats = Copytrade::strategies()->getStrategyStats($strategyId);
-// Returns: StrategyStatsDTO
-```
-
-**Search Strategies**
-
-```php
-$results = Copytrade::strategies()->searchStrategies('scalping');
-// Returns: SearchStrategyDTO[]
-```
-
-**Get Strategy Copiers**
-
-```php
-$copiers = Copytrade::strategies()->getStrategyCopiers($strategyId);
-// Returns: CopierDTO[]
-```
-
-**Get Strategy Signals**
-
-```php
-$signals = Copytrade::strategies()->getStrategySignals($strategyId);
-// Returns: SignalDTO[]
-```
-
----
-
-### Copier Service
-
-**Get All Copiers**
-
-```php
-$copiers = Copytrade::copiers()->getCopiers($profileId);
-// Returns: CopierDTO[]
-```
-
-**Add Copier**
-
-```php
-$copier = Copytrade::copiers()->addCopier($profileId, [
-    'name' => 'My Copier',
-    'connection' => [
-        'serverId' => 'server-123',
-        'login' => '67890',
-        'password' => 'secret'
-    ]
-]);
-// Returns: CopierDTO
-```
-
-**Update Copier**
-
-```php
-$copier = Copytrade::copiers()->updateCopier($profileId, $copierId, [
-    'name' => 'Updated Copier Name'
-]);
-// Returns: CopierDTO
-```
-
-**Remove Copier**
-
-```php
-$success = Copytrade::copiers()->removeCopier($profileId, $copierId);
-// Returns: bool
-```
-
-**Get Copier Statistics**
-
-```php
-$stats = Copytrade::copiers()->getCopierStats($copierId);
-// Returns: CopierStatsDTO
-```
-
-**Copy a Strategy**
-
-```php
-$result = Copytrade::copiers()->copyStrategy($profileId, $copierId, [
-    'strategyId' => 'strategy-123',
-    'copySettings' => [
-        'multiplier' => 1.0,
-        'maxRisk' => 0.02
-    ]
-]);
-// Returns: CopySettingsDTO
-```
-
-**Update Copy Settings**
-
-```php
-$settings = Copytrade::copiers()->updateCopySettings($profileId, $copierId, [
-    'multiplier' => 1.5,
-    'maxRisk' => 0.03
-]);
-// Returns: CopySettingsDTO
-```
-
-**Stop Copying**
-
-```php
-$success = Copytrade::copiers()->stopCopy($profileId, $copierId);
-// Returns: bool
-```
-
-**Get Copied Strategies**
-
-```php
-$strategies = Copytrade::copiers()->getCopiedStrategies($copierId);
-// Returns: StrategyDTO[]
-```
-
-**Get Copier Signals**
-
-```php
-$signals = Copytrade::copiers()->getCopierSignals($copierId);
-// Returns: SignalDTO[]
-```
-
-**Upload Copier Image**
-
-```php
-$result = Copytrade::copiers()->uploadCopierImage(
-    $profileId,
-    $copierId,
-    $fileContent,
-    'avatar.jpg'
-);
-// Returns: array
-```
-
----
-
-### Server Service
-
-**Get All Servers**
-
-```php
-$servers = Copytrade::servers()->getServers();
-// Returns: ServerDTO[]
-```
-
----
-
-### Section Service
-
-**Get All Sections**
-
-```php
-$sections = Copytrade::sections()->getSections();
-// Returns: SectionDTO[]
-```
-
-**Get Section by Code**
-
-```php
-$section = Copytrade::sections()->getSection('featured');
-// Returns: SectionDTO
-```
-
-## 🎯 Data Transfer Objects (DTOs)
-
-All API responses are wrapped in type-safe DTOs with full IDE autocomplete support.
-
-### UserInfoDTO
-
-```php
-$userInfo->profileId    // string - Your profile ID
-$userInfo->rawData      // array  - Raw API response
-```
-
-### ProfileDTO
-
-```php
-$profile->id            // string  - Profile ID
-$profile->name          // ?string - Profile name
-$profile->riskProfile   // ?string - Risk profile level
-$profile->countryCode   // ?string - Country code (e.g., 'US')
-$profile->rawData       // array   - Raw API response
-```
-
-### StrategyDTO
-
-```php
-$strategy->id           // string                    - Strategy ID
-$strategy->name         // string                    - Strategy name
-$strategy->riskProfile  // string                    - Risk profile
-$strategy->fee          // float                     - Strategy fee
-$strategy->connection   // ?StrategyConnectionDTO   - Connection details
-$strategy->rawData      // array                     - Raw API response
-```
-
-### CopierDTO
-
-```php
-$copier->id             // string                - Copier ID
-$copier->name           // ?string               - Copier name
-$copier->connection     // ?CopierConnectionDTO - Connection details
-$copier->drawdown       // ?CopierDrawdownDTO   - Drawdown info
-$copier->rawData        // array                 - Raw API response
-```
-
-### StrategyStatsDTO
-
-```php
-$stats->totalTrades     // int   - Total number of trades
-$stats->winRate         // float - Win rate percentage
-$stats->profitFactor    // float - Profit factor
-$stats->rawData         // array - Raw API response
-```
-
-### ServerDTO
-
-```php
-$server->id             // string - Server ID
-$server->name           // string - Server name
-$server->type           // string - Server type
-$server->rawData        // array  - Raw API response
-```
-
-### SectionDTO
-
-```php
-$section->code          // string - Section code
-$section->title         // string - Section title
-$section->strategies    // array  - Strategies in section
-$section->rawData       // array  - Raw API response
-```
-
-## ⚠️ Error Handling
-
-The package provides specific exceptions for different error scenarios:
-
-```php
-use Asciisd\Copytrade\Exceptions\AuthenticationException;
-use Asciisd\Copytrade\Exceptions\NotFoundException;
-use Asciisd\Copytrade\Exceptions\ValidationException;
-use Asciisd\Copytrade\Exceptions\RateLimitException;
 use Asciisd\Copytrade\Exceptions\CopytradeException;
+use Asciisd\Copytrade\Exceptions\NotFoundException;
 
 try {
-    $profile = Copytrade::profiles()->getProfile($profileId);
+    $profile = Copytrade::withToken($accessToken)->profiles()->getProfile($profileId);
 } catch (AuthenticationException $e) {
-    // Invalid or expired access token
-    Log::error('Authentication failed: ' . $e->getMessage());
+    // Invalid or expired access token — re-login or refresh
 } catch (NotFoundException $e) {
-    // Profile not found
     abort(404, 'Profile not found');
-} catch (ValidationException $e) {
-    // Invalid input data
-    return back()->withErrors($e->getMessage());
-} catch (RateLimitException $e) {
-    // Rate limit exceeded
-    return response('Too many requests', 429);
 } catch (CopytradeException $e) {
-    // Any other API error
-    Log::error('API Error: ' . $e->getMessage());
+    Log::error('CopyTrade API error', ['message' => $e->getMessage()]);
 }
 ```
 
-## 🧪 Testing
+## Testing Your Application
 
-The package is designed with testability in mind. All services implement interfaces, making them easy to mock:
+All services are bound to interfaces in the container, so they are trivial to
+mock in your application tests:
 
 ```php
 use Asciisd\Copytrade\Contracts\ProfileServiceInterface;
 use Asciisd\Copytrade\DTOs\Profile\ProfileDTO;
 
-class ExampleTest extends TestCase
-{
-    public function test_can_get_profile()
-    {
-        // Mock the service
-        $mock = Mockery::mock(ProfileServiceInterface::class);
-        $mock->shouldReceive('getProfile')
-            ->with('profile-123')
-            ->andReturn(new ProfileDTO(
-                id: 'profile-123',
-                name: 'Test User',
-                riskProfile: 'low',
-                countryCode: 'US'
-            ));
-
-        $this->app->instance(ProfileServiceInterface::class, $mock);
-
-        // Test your code
-        $response = $this->get('/profile/profile-123');
-        $response->assertSee('Test User');
-    }
-}
+$this->mock(ProfileServiceInterface::class, function ($mock) {
+    $mock->shouldReceive('getProfile')
+        ->with('profile-123')
+        ->andReturn(ProfileDTO::fromResponse([
+            'id' => 'profile-123',
+            'name' => 'Test User',
+        ]));
+});
 ```
 
-## 🔧 Advanced Usage
-
-### Custom HTTP Client Configuration
-
-You can modify HTTP client settings in the config file:
+Because the services use Laravel's HTTP client internally, you can also fake
+at the HTTP layer:
 
 ```php
-// config/copytrade.php
-return [
-    'timeout' => 30,
-    'retry_times' => 3,
-    'retry_delay' => 100,
-    // ... other settings
-];
+use Illuminate\Support\Facades\Http;
+
+Http::fake([
+    'papi.copy-trade.io/api/servers' => Http::response([
+        ['id' => 'srv-1', 'name' => 'Demo Server'],
+    ]),
+]);
 ```
 
-### Handling Raw Responses
+### Running the package test suite
 
-All DTOs include a `rawData` property with the complete API response:
-
-```php
-$profile = Copytrade::profiles()->getProfile($profileId);
-
-// Access structured data
-echo $profile->name;
-
-// Access raw response
-dd($profile->rawData);
-```
-
-### Working with Multiple Accounts
-
-Use runtime token override to work with multiple accounts:
-
-```php
-$accounts = [
-    'account1' => 'token1',
-    'account2' => 'token2',
-];
-
-foreach ($accounts as $name => $token) {
-    $copytrade = Copytrade::withToken($token);
-    $userInfo = $copytrade->profiles()->getUserInfo();
-    $profile = $copytrade->profiles()->getProfile($userInfo->profileId);
-
-    echo "{$name}: {$profile->name}\n";
-}
-```
-
-## 📄 License
-
-This package is open-sourced software licensed under the [MIT license](LICENSE).
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 🐛 Support
-
-If you encounter any issues or have questions:
-
-1. Check the [Issues](https://github.com/asciisd/caveofx-copytrade/issues) page
-2. Create a new issue if your problem isn't already listed
-3. Provide as much detail as possible
-
-## 🔗 Links
-
-- [GitHub Repository](https://github.com/asciisd/caveofx-copytrade)
-- [CopyTrade API Documentation](https://copy-trade.io/docs)
-
----
-
-Built with ❤️ using Laravel
-
-### ServerDTO
-
-```php
-$server->id             // string
-$server->name           // string
-$server->region         // ?string
-$server->status         // ?string
-$server->rawData        // array
-```
-
-## Error Handling
-
-```php
-use Asciisd\Copytrade\Exceptions\CopytradeException;
-
-try {
-    $profile = Copytrade::profiles()->getProfile($profileId);
-} catch (CopytradeException $e) {
-    Log::error('CopyTrade API Error: ' . $e->getMessage());
-    // Handle error
-}
+```bash
+composer test
 ```
 
 ## Architecture
 
-The package follows SOLID principles:
-
-- **Single Responsibility**: Each service handles one domain
-- **Open/Closed**: Extend via interfaces without modifying core
-- **Liskov Substitution**: All services implement contracts
-- **Interface Segregation**: Focused, specific interfaces
-- **Dependency Inversion**: Depend on abstractions, not concretions
-
-### Structure
-
 ```
 src/
 ├── Config/
-│   └── copytrade.php           # Configuration
-├── Contracts/                   # Interfaces
-│   ├── HttpClientInterface.php
+│   └── copytrade.php              # Configuration
+├── Contracts/                     # Service interfaces
+│   ├── AuthServiceInterface.php
+│   ├── CopierServiceInterface.php
 │   ├── ProfileServiceInterface.php
-│   └── ServerServiceInterface.php
-├── DTOs/                        # Data Transfer Objects
-│   ├── ProfileDTO.php
-│   ├── ServerDTO.php
-│   ├── UpdateProfileRequest.php
-│   └── UserInfoDTO.php
-├── Exceptions/
-│   └── CopytradeException.php
+│   ├── SectionServiceInterface.php
+│   ├── ServerServiceInterface.php
+│   └── StrategyServiceInterface.php
+├── DTOs/                          # Typed request/response objects
+│   ├── Auth/
+│   ├── Copier/
+│   ├── Profile/
+│   ├── Section/
+│   ├── Server/
+│   └── Strategy/
+├── Exceptions/                    # Exception hierarchy
 ├── Facades/
 │   └── Copytrade.php
-├── Http/
-│   └── HttpClient.php          # HTTP client implementation
-├── Services/                    # Service implementations
+├── Services/                      # Service implementations
+│   ├── AbstractService.php        # Shared HTTP + token handling
+│   ├── AuthService.php
+│   ├── CopierService.php
 │   ├── ProfileService.php
-│   └── ServerService.php
-├── Copytrade.php               # Main class
+│   ├── SectionService.php
+│   ├── ServerService.php
+│   └── StrategyService.php
+├── Copytrade.php                  # Main entry point behind the facade
 └── CopytradeServiceProvider.php
 ```
 
-## Testing
-
-```php
-use Asciisd\Copytrade\Contracts\ProfileServiceInterface;
-
-// Mock in tests
-$this->mock(ProfileServiceInterface::class, function ($mock) {
-    $mock->shouldReceive('getProfile')
-        ->once()
-        ->andReturn(new ProfileDTO(
-            id: '123',
-            name: 'Test User'
-        ));
-});
-```
+Each service handles exactly one API domain, every service is consumed through
+its interface, and token scoping is immutable (`withToken()` returns a copy),
+so a token from one request can never leak into another.
 
 ## License
 
-MIT
+This package is open-sourced software licensed under the [MIT license](LICENSE).
